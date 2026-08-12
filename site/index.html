@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Nightly binary toolchains for the experimental Lean CUDA backend.">
+  <title>Lean CUDA nightlies</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <p class="eyebrow">Experimental binary distribution</p>
+      <h1>Lean CUDA nightlies</h1>
+      <p class="lede">
+        Immutable Linux x86_64 and AArch64 toolchains for compiling Lean declarations to CUDA.
+        These builds are independent experimental prereleases, not upstream Lean releases.
+      </p>
+      <div class="actions">
+        <a class="primary" href="install.html">Install a nightly</a>
+        <a href="agent-install.md">Instructions for agents</a>
+        <a href="releases/v1/index.json">Release JSON</a>
+      </div>
+    </header>
+
+    <section aria-labelledby="status-title">
+      <h2 id="status-title">Current channel</h2>
+      <div class="status-card">{{LATEST_STATUS}}</div>
+    </section>
+
+    <section aria-labelledby="contract-title">
+      <h2 id="contract-title">What a nightly means</h2>
+      <div class="grid">
+        <article>
+          <h3>Two native architectures</h3>
+          <p>Linux x86_64 and Linux AArch64 are built from one immutable private source commit.</p>
+        </article>
+        <article>
+          <h3>Validated after extraction</h3>
+          <p>Each archive passes provenance, module-coverage, Lake CUDA smoke, and full-suite gates.</p>
+        </article>
+        <article>
+          <h3>Private compiler source</h3>
+          <p>Compiled toolchains omit private Lean sources. Required public CUDA SDK headers remain.</p>
+        </article>
+        <article>
+          <h3>No implied performance claim</h3>
+          <p>H100 validation is recorded separately and is not implied by an ordinary nightly.</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="releases-title">
+      <h2 id="releases-title">Release history</h2>
+      <div class="release-list">
+        {{RELEASE_ROWS}}
+      </div>
+    </section>
+
+    <footer>
+      <p>
+        Apache 2.0 · <a href="llms.txt">llms.txt</a> ·
+        <a href="https://github.com/ranvier-labs/lean4-cuda-nightly">Distribution repository</a>
+      </p>
+    </footer>
+  </main>
+</body>
+</html>

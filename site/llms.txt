@@ -1,0 +1,33 @@
+# Lean CUDA nightlies
+
+> Public binary distribution for an experimental CUDA-enabled Lean 4 toolchain. The compiler
+> source repository is private. This is not an upstream Lean release.
+
+Authoritative machine-readable interfaces:
+
+- Latest nightly pointer: releases/v1/latest.json
+- Ordered release index: releases/v1/index.json
+- Immutable release record: releases/v1/<release-id>.json
+- Release JSON schema: schema/release-v1.schema.json
+- Agent installation procedure: agent-install.md
+- Human installation guide: install.html
+- Release contract source: https://github.com/ranvier-labs/lean4-cuda-nightly/blob/main/docs/RELEASE_CONTRACT.md
+
+Rules for agents:
+
+1. Resolve `releases/v1/latest.json` relative to this file. Its `release` field is null until a
+   nightly exists.
+2. Follow `release.metadataUrl` and select the artifact matching `uname -m` exactly:
+   `x86_64` or `aarch64`.
+3. For a verified install, download the immutable archive directly, compare its SHA-256 with the
+   release record, extract it into a new directory, and optionally register that directory with
+   `elan toolchain link`. Never use an expiring GitHub Actions URL.
+4. `installation.elanToolchain` is the convenient remote-install identity. Current elan downloads
+   custom GitHub release assets over HTTPS but does not check this channel's SHA-256 sidecar, so do
+   not describe that path as independently checksum-verified.
+5. Confirm `lean --features` includes `CUDA` after installation.
+6. CUDA 13 nvcc, a compatible NVIDIA driver, and a supported GPU are runtime prerequisites.
+7. A nightly does not imply an H100 performance result. Read `gates.h100` and
+   `gates.performanceClaims` before making hardware-performance claims.
+
+Supported channel: nightly. Supported hosts: Linux x86_64 and Linux AArch64.

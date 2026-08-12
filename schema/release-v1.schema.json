@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ranvier.systems/lean-cuda/schema/release-v1.schema.json",
+  "title": "Lean CUDA nightly release",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "channel",
+    "id",
+    "version",
+    "publishedAt",
+    "source",
+    "build",
+    "gates",
+    "contentPolicy",
+    "installation",
+    "artifacts",
+    "limitations"
+  ],
+  "properties": {
+    "schema": { "const": "lean.cuda.release/v1" },
+    "channel": { "const": "nightly" },
+    "id": {
+      "type": "string",
+      "pattern": "^nightly-[0-9]{4}-[0-9]{2}-[0-9]{2}(-rev[1-9][0-9]*)?$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+-cuda-nightly\\.[0-9]{8}(\\.rev[1-9][0-9]*)?\\.g[0-9a-f]{7,12}$"
+    },
+    "publishedAt": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibility", "commit"],
+      "properties": {
+        "visibility": { "const": "private" },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "tree": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cudaToolkitVersion",
+        "ptxArchitecture",
+        "workflowUrl",
+        "validation"
+      ],
+      "properties": {
+        "cudaToolkitVersion": { "type": "string", "pattern": "^13\\.[0-9]+\\.[0-9]+$" },
+        "ptxArchitecture": { "type": "string", "pattern": "^compute_[0-9]+$" },
+        "workflowUrl": { "type": "string", "format": "uri" },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["registered", "failures", "skipped", "umbrellaModules", "extractedSmoke"],
+          "properties": {
+            "registered": { "type": "integer", "minimum": 1 },
+            "failures": { "const": 0 },
+            "skipped": { "type": "integer", "minimum": 0 },
+            "umbrellaModules": { "type": "integer", "minimum": 1 },
+            "extractedSmoke": { "const": true }
+          }
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dualArchitectureCI", "h100", "performanceClaims"],
+      "properties": {
+        "dualArchitectureCI": { "const": "passed" },
+        "h100": { "enum": ["not-run", "passed"] },
+        "performanceClaims": { "type": "boolean" },
+        "h100EvidenceUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "contentPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privateLeanSources", "sdkHeaders"],
+      "properties": {
+        "privateLeanSources": { "const": "excluded" },
+        "sdkHeaders": { "const": "included" }
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "elanToolchain"],
+      "properties": {
+        "repository": { "const": "ranvier-labs/lean4-cuda-nightly" },
+        "elanToolchain": { "type": "string", "minLength": 1 }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hostSystem",
+        "architecture",
+        "name",
+        "url",
+        "checksumUrl",
+        "sha256",
+        "size",
+        "sassArchitectures",
+        "manifest"
+      ],
+      "properties": {
+        "hostSystem": { "const": "Linux" },
+        "architecture": { "enum": ["x86_64", "aarch64"] },
+        "name": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "checksumUrl": { "type": "string", "format": "uri" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sassArchitectures": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^sm_[0-9]+a$" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema", "name", "url", "sha256", "size", "fileCount"],
+          "properties": {
+            "schema": { "const": "lean.cuda.release-manifest/v1" },
+            "name": { "type": "string", "minLength": 1 },
+            "url": { "type": "string", "format": "uri" },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "size": { "type": "integer", "minimum": 1 },
+            "fileCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    }
+  }
+}

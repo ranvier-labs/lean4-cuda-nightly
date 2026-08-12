@@ -1,0 +1,50 @@
+name: Validate distribution contract
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Check introduced commit messages
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          zero=0000000000000000000000000000000000000000
+          if test "$EVENT_NAME" = pull_request; then
+            revision="$BASE_SHA..$HEAD_SHA"
+          elif test -n "$BEFORE_SHA" && test "$BEFORE_SHA" != "$zero"; then
+            revision="$BEFORE_SHA..$HEAD_SHA"
+          else
+            revision="$HEAD_SHA"
+          fi
+          python3 scripts/check_commit_messages.py "$revision"
+      - name: Check contract, tests, and generated site
+        run: make check
+      - name: Reject accidentally committed large files
+        run: |
+          oversized="$(find . -path ./.git -prune -o -type f -size +10M -print)"
+          if test -n "$oversized"; then
+            printf 'Files larger than 10 MiB do not belong in Git:\n%s\n' "$oversized" >&2
+            exit 1
+          fi

@@ -1,0 +1,168 @@
+from __future__ import annotations
+
+from html.parser import HTMLParser
+import json
+from pathlib import Path
+import shutil
+import tempfile
+import unittest
+
+from scripts.release_tool import (
+    ContractError,
+    build_site,
+    load_release_records,
+    validate_manifest,
+    validate_release,
+)
+
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXTURE = ROOT / "tests" / "fixtures" / "nightly-2026-08-12.json"
+
+
+class LinkCollector(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.links: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        for name, value in attrs:
+            if name == "href" and value is not None:
+                self.links.append(value)
+
+
+class ReleaseValidationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.record = json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+    def test_valid_release(self) -> None:
+        self.assertEqual(validate_release(self.record)["id"], "nightly-2026-08-12")
+
+    def test_version_commit_must_match(self) -> None:
+        self.record["source"]["commit"] = "f" * 40
+        with self.assertRaisesRegex(ContractError, "short commit suffix"):
+            validate_release(self.record)
+
+    def test_both_architectures_are_required(self) -> None:
+        self.record["artifacts"][1]["architecture"] = "x86_64"
+        with self.assertRaisesRegex(ContractError, "duplicated"):
+            validate_release(self.record)
+
+    def test_performance_claim_requires_h100(self) -> None:
+        self.record["gates"]["performanceClaims"] = True
+        with self.assertRaisesRegex(ContractError, "must be false"):
+            validate_release(self.record)
+
+    def test_unknown_fields_fail_closed(self) -> None:
+        self.record["sourceUrl"] = "https://example.invalid/private"
+        with self.assertRaisesRegex(ContractError, "unknown fields"):
+            validate_release(self.record)
+
+    def test_distribution_repository_is_pinned(self) -> None:
+        self.record["installation"]["repository"] = "attacker/toolchains"
+        self.record["installation"]["elanToolchain"] = (
+            "attacker/toolchains:nightly-2026-08-12"
+        )
+        with self.assertRaisesRegex(ContractError, "ranvier-labs/lean4-cuda-nightly"):
+            validate_release(self.record)
+
+
+class ManifestPolicyTests(unittest.TestCase):
+    def entry(self, path: str) -> dict[str, object]:
+        return {
+            "path": path,
+            "sha256": "0" * 64,
+            "size": 1,
+            "type": "file",
+        }
+
+    def test_compiled_tree_and_sdk_headers_pass(self) -> None:
+        manifest = {
+            "schema": "lean.cuda.release-manifest/v1",
+            "fileCount": 3,
+            "files": [
+                self.entry("bin/lean"),
+                self.entry("lib/lean/Lean/Cuda.olean"),
+                self.entry("include/lean/lean_cuda_device_runtime.cuh"),
+            ],
+        }
+        self.assertEqual(validate_manifest(manifest)["privateLeanSources"], 0)
+
+    def test_private_lean_source_is_rejected(self) -> None:
+        manifest = {
+            "schema": "lean.cuda.release-manifest/v1",
+            "fileCount": 1,
+            "files": [self.entry("src/lean/Lean/Compiler/LCNF/EmitC.lean")],
+        }
+        with self.assertRaisesRegex(ContractError, "forbidden installed Lean sources"):
+            validate_manifest(manifest)
+
+    def test_traversal_is_rejected(self) -> None:
+        manifest = {
+            "schema": "lean.cuda.release-manifest/v1",
+            "fileCount": 1,
+            "files": [self.entry("../private.lean")],
+        }
+        with self.assertRaisesRegex(ContractError, "must not traverse"):
+            validate_manifest(manifest)
+
+
+class SiteGenerationTests(unittest.TestCase):
+    def test_agent_docs_disclose_elan_checksum_boundary(self) -> None:
+        for path in (ROOT / "site" / "llms.txt", ROOT / "site" / "agent-install.md"):
+            with self.subTest(path=path):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("does not", text)
+                self.assertIn("checksum", text)
+
+    def test_empty_channel_has_nullable_latest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "records"
+            static = root / "static"
+            output = root / "output"
+            records.mkdir()
+            shutil.copytree(ROOT / "site", static)
+            self.assertEqual(build_site(records, static, output, ROOT / "schema"), 0)
+            latest = json.loads(
+                (output / "releases" / "v1" / "latest.json").read_text(encoding="utf-8")
+            )
+            self.assertIsNone(latest["release"])
+            self.assertIn("No public nightly yet", (output / "index.html").read_text(encoding="utf-8"))
+            self.assertTrue((output / "schema" / "release-v1.schema.json").is_file())
+            collector = LinkCollector()
+            collector.feed((output / "index.html").read_text(encoding="utf-8"))
+            for link in collector.links:
+                if link.startswith(("https://", "http://", "#")):
+                    continue
+                with self.subTest(link=link):
+                    self.assertTrue((output / link).is_file())
+
+    def test_release_record_becomes_latest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "records"
+            static = root / "static"
+            output = root / "output"
+            records.mkdir()
+            shutil.copy(FIXTURE, records / FIXTURE.name)
+            shutil.copytree(ROOT / "site", static)
+            self.assertEqual(len(load_release_records(records)), 1)
+            self.assertEqual(build_site(records, static, output, ROOT / "schema"), 1)
+            latest = json.loads(
+                (output / "releases" / "v1" / "latest.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(latest["release"]["id"], "nightly-2026-08-12")
+            self.assertEqual(latest["release"]["metadataUrl"], "./nightly-2026-08-12.json")
+            self.assertTrue(
+                (output / "releases" / "v1" / "nightly-2026-08-12.json").is_file()
+            )
+
+    def test_schema_files_are_json(self) -> None:
+        for path in sorted((ROOT / "schema").glob("*.json")):
+            with self.subTest(path=path):
+                self.assertIsInstance(json.loads(path.read_text(encoding="utf-8")), dict)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ranvier.systems/lean-cuda/schema/index-v1.schema.json",
+  "title": "Lean CUDA nightly release index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "channel", "releases"],
+  "properties": {
+    "schema": { "const": "lean.cuda.release-index/v1" },
+    "channel": { "const": "nightly" },
+    "releases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/summary" }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "publishedAt", "metadataUrl"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "metadataUrl": { "type": "string", "format": "uri-reference" }
+      }
+    }
+  }
+}
