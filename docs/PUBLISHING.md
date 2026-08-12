@@ -6,8 +6,8 @@ release assets and one small JSON record. Do not copy the private Git history in
 ## One-time setup
 
 1. Keep `ranvier-labs/lean4-cuda-nightly` private while staging the channel.
-2. Enable GitHub Pages using GitHub Actions as the source when the organization plan and desired
-   visibility permit it.
+2. Confirm that the organization plan and desired visibility permit GitHub Pages. The first
+   deployment asks GitHub to enable Pages with GitHub Actions as its source.
 3. Install a GitHub App on the companion repository with only the repository permissions needed to
    create releases and push release records. Store its credentials only in the private build
    repository.
