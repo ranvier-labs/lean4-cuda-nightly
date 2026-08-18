@@ -10,27 +10,53 @@ release assets and one small JSON record. Do not copy the private Git history in
    Actions as its source.
 3. Set the repository Actions variable `PUBLISH_PAGES=true`. Until then, push-triggered Pages jobs
    intentionally skip; a manual dispatch remains available after Pages has been configured.
-4. Install a GitHub App on the companion repository with only the repository permissions needed to
-   create releases and push release records. Store its credentials only in the private build
-   repository.
+4. Install a GitHub App on the companion repository with `Contents: read and write`. Store its app
+   ID and private key only in the private build repository, as `CUDA_NIGHTLY_APP_ID` and
+   `CUDA_NIGHTLY_APP_PRIVATE_KEY`.
 5. Keep the ordinary private workflow `GITHUB_TOKEN` read-only; it cannot and should not publish
    across repositories.
+6. Register one Linux `X64` and one Linux `ARM64` self-hosted runner on the private build
+   repository. Both runners need the `cuda-13` label, CUDA 13, CMake, Make, Python, and zstd.
+
+## Native Lean release path
+
+The CUDA workflow deliberately uses the same release mechanism as Lean itself: configure the
+canonical build tree with an install parent and platform suffix, build it, invoke the stage
+install target, and compress that installed directory with tar and zstd.
+
+```bash
+cmake --preset release -B build/release \
+  -DCHECK_OLEAN_VERSION=ON \
+  -DINSTALL_LEAN_SOURCES=OFF \
+  -DLEAN_CUDA=ON \
+  -DLEAN_INSTALL_PREFIX="$PWD" \
+  -DLEAN_INSTALL_SUFFIX=-linux_aarch64 \
+  -DLEAN_SPECIAL_VERSION_DESC=cuda-nightly.YYYYMMDD.gCOMMIT
+make -j"$(nproc)" -C build/release
+make -C build/release/stage1 install
+dir=$(echo lean-*-linux_aarch64)
+tar cf - "$dir" | zstd -T0 --no-progress -19 -o "$dir.tar.zst"
+```
+
+`INSTALL_LEAN_SOURCES=OFF` is the sole installed-layout exception. The ordinary Lean default
+remains `ON`, while CUDA distributions retain compiled `.olean`/`.ilean` modules, runtime
+libraries, public headers, licenses, and the normal command-line tools.
 
 ## Private build handoff
 
 1. Derive `nightly-YYYY-MM-DD`, using `-revN` only for a same-day retry, and configure Lean with
    the corresponding `cuda-nightly.<date>[.revN].g<short-commit>` version.
 2. Build Linux x86_64 and AArch64 from the same immutable private source commit.
-3. Install with the compiled-toolchain packaging profile. Do not install private
-   `src/lean/**/*.lean` files.
+3. Install through Lean's native stage install target with `INSTALL_LEAN_SOURCES=OFF`. Do not
+   install private `src/lean/**/*.lean` files.
 4. Run installed-tree validation, extracted Lake CUDA smoke, and the full Lean test suite on both
    architectures.
-5. Generate deterministic manifests and checksum sidecars. Run this repository's
-   `verify-manifest` privacy gate on both manifests.
-6. Create a draft prerelease in the distribution repository and upload the two archives,
-   sidecars, and manifests. Set temporary Actions-artifact retention to one day after handoff.
-7. Verify every uploaded asset's size and digest, then publish the GitHub prerelease.
-8. Add `releases/<release-id>.json`, run `make check`, and push it. Pages deployment then updates
+5. Generate deterministic manifests with `release_tool.py build-manifest`, then run
+   `verify-manifest` as the privacy gate on both manifests. Generate checksum sidecars for both
+   standard Lean archives.
+6. After both architecture jobs pass, create the companion prerelease and upload the two archives,
+   sidecars, and manifests. Keep temporary Actions-artifact retention to one day after handoff.
+7. Add `releases/<release-id>.json`, run `make check`, and push it. Pages deployment then updates
    the release index and latest pointer.
 
 Publishing the GitHub release before the metadata commit creates a safe short interval in which an
@@ -54,6 +80,9 @@ ranvier-labs/lean4-cuda-nightly:<release-id>
 The tag may target an ordinary companion metadata commit. Elan consumes the release asset; the
 tag does not need to contain the private compiler source.
 
+GitHub's automatic "Source code" links for the release contain this source-free companion
+repository only. They never contain or point a tag at the private compiler repository.
+
 GitHub release assets in a private repository are not anonymous downloads. Before an external
 nightly launch, either make this source-free companion repository public or mirror the release
 assets and generated site to a public distribution host. This visibility change does not expose
@@ -66,13 +95,13 @@ uses direct download plus explicit SHA-256 verification as the strict path. See 
 [`manifestation.rs`](https://github.com/leanprover/elan/blob/master/src/elan-dist/src/manifestation.rs)
 and [`download.rs`](https://github.com/leanprover/elan/blob/master/src/elan-dist/src/download.rs).
 
-## Source-repository changes still required
+## Source-repository workflow
 
-The current CUDA release workflow must gain four narrowly scoped changes before its first nightly:
+The private compiler repository owns `.github/workflows/cuda-nightly.yml`. It derives an immutable
+nightly identity, runs the canonical release build and full test suite on both architectures,
+checks the source-free installed tree and an extracted Lake CUDA project, and creates this
+repository's prerelease only after the complete dual-architecture matrix passes.
 
-1. a scheduled nightly/version derivation path;
-2. a compiled-toolchain install profile that omits private Lean sources;
-3. source-independent installed archive verification;
-4. a cross-repository publish job that runs only after both architecture jobs pass.
-
-Those changes belong in the private source repository, not here.
+The workflow uploads standard Lean archives plus SHA-256 sidecars and deterministic manifests. A
+release is not advertised as `latest` until its verified `releases/<release-id>.json` record has
+also been committed here; that final metadata step preserves the release-before-pointer ordering.

@@ -34,6 +34,17 @@ The gate rejects absolute paths, traversal, duplicate entries, inconsistent file
 installed `.lean` file below `src/lean/`. Public CUDA SDK headers are intentionally allowed and
 declared through `contentPolicy.sdkHeaders`.
 
+Create a manifest from an installed tree with:
+
+```bash
+python3 scripts/release_tool.py build-manifest TOOLCHAIN_ROOT \
+  --output lean-VERSION-PLATFORM.manifest.json
+```
+
+Entries are ordered by relative POSIX path. Regular files are hashed by contents; symlinks are
+recorded without traversal and hash their link-target bytes. The output must be outside the
+installed tree so it cannot accidentally include itself.
+
 ## Mutability
 
 Release records and assets are immutable. The generated `latest.json` pointer is the only mutable

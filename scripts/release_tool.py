@@ -8,6 +8,7 @@ from datetime import date, datetime
 import hashlib
 import html
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
@@ -369,6 +370,66 @@ def validate_manifest(value: Any, origin: str = "manifest") -> dict[str, int]:
     return {"fileCount": file_count, "privateLeanSources": 0}
 
 
+def build_manifest(root: Path, output: Path) -> dict[str, Any]:
+    """Build a deterministic manifest for the contents of an installed toolchain."""
+    root = root.resolve()
+    require(root.is_dir(), str(root), "installed toolchain root must be a directory")
+
+    output = output.resolve()
+    require(root not in output.parents, str(output), "manifest output must be outside the toolchain root")
+
+    files: list[dict[str, Any]] = []
+
+    def visit(directory: Path) -> None:
+        try:
+            children = sorted(directory.iterdir(), key=lambda path: path.name)
+        except OSError as error:
+            raise ContractError(f"{directory}: cannot list directory: {error}") from error
+
+        for path in children:
+            relative = path.relative_to(root).as_posix()
+            if path.is_symlink():
+                try:
+                    target = os.fsencode(os.readlink(path))
+                except OSError as error:
+                    raise ContractError(f"{path}: cannot read symlink: {error}") from error
+                files.append(
+                    {
+                        "path": relative,
+                        "sha256": hashlib.sha256(target).hexdigest(),
+                        "size": len(target),
+                        "type": "symlink",
+                    }
+                )
+            elif path.is_dir():
+                visit(path)
+            elif path.is_file():
+                try:
+                    size = path.stat().st_size
+                except OSError as error:
+                    raise ContractError(f"{path}: cannot stat file: {error}") from error
+                files.append(
+                    {
+                        "path": relative,
+                        "sha256": file_sha256(path),
+                        "size": size,
+                        "type": "file",
+                    }
+                )
+            else:
+                fail(str(path), "unsupported installed-tree entry type")
+
+    visit(root)
+    manifest = {
+        "schema": MANIFEST_SCHEMA,
+        "fileCount": len(files),
+        "files": files,
+    }
+    validate_manifest(manifest, str(output))
+    write_json(output, manifest)
+    return manifest
+
+
 def load_release_records(records_dir: Path) -> list[dict[str, Any]]:
     if not records_dir.is_dir():
         raise ContractError(f"{records_dir}: release records directory does not exist")
@@ -509,6 +570,22 @@ def command_verify_manifest(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_build_manifest(arguments: argparse.Namespace) -> int:
+    manifest = build_manifest(arguments.root, arguments.output)
+    print(
+        json.dumps(
+            {
+                "file": str(arguments.output),
+                "fileCount": manifest["fileCount"],
+                "privateLeanSources": 0,
+                "sha256": file_sha256(arguments.output),
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def command_build_site(arguments: argparse.Namespace) -> int:
     count = build_site(
         arguments.records_dir,
@@ -535,6 +612,14 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     )
     manifest_parser.add_argument("manifests", nargs="+", type=Path)
     manifest_parser.set_defaults(handler=command_verify_manifest)
+
+    build_manifest_parser = subparsers.add_parser(
+        "build-manifest",
+        help="create a deterministic manifest for an installed toolchain",
+    )
+    build_manifest_parser.add_argument("root", type=Path)
+    build_manifest_parser.add_argument("--output", type=Path, required=True)
+    build_manifest_parser.set_defaults(handler=command_build_manifest)
 
     site_parser = subparsers.add_parser("build-site", help="validate records and build the static site")
     site_parser.add_argument("--records-dir", type=Path, required=True)

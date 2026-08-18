@@ -37,12 +37,12 @@ The installed tree contains:
 1. `bin/`: `lean`, `leanc`, `lake`, and supporting tools;
 2. `lib/lean/`: compiled `.olean`/`.ilean` modules, native libraries, and CUDA device objects;
 3. `include/lean/`: public host and CUDA SDK headers;
-4. `share/lean/cuda-toolchain.json`: exact build provenance;
-5. licenses and notices.
+4. licenses and notices.
 
 It does not contain private `src/lean/**/*.lean` files. Omitting those sources removes
 go-to-definition into the private toolchain implementation, but does not prevent imports from
-loading the compiled `.olean` modules.
+loading the compiled `.olean` modules. Exact build provenance lives in the immutable release
+record and archive manifest rather than in an extra nonstandard installed file.
 
 ## CUDA SDK exception
 

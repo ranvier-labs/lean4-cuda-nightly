@@ -9,6 +9,7 @@ import unittest
 
 from scripts.release_tool import (
     ContractError,
+    build_manifest,
     build_site,
     load_release_records,
     validate_manifest,
@@ -105,6 +106,52 @@ class ManifestPolicyTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(ContractError, "must not traverse"):
             validate_manifest(manifest)
+
+    def test_build_manifest_is_deterministic_and_symlink_safe(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            toolchain = temporary_root / "lean-toolchain"
+            (toolchain / "bin").mkdir(parents=True)
+            (toolchain / "lib" / "lean").mkdir(parents=True)
+            (toolchain / "bin" / "lean").write_bytes(b"lean executable\n")
+            (toolchain / "lib" / "lean" / "Cuda.olean").write_bytes(b"compiled module\n")
+            (toolchain / "bin" / "lean-link").symlink_to("lean")
+            output = temporary_root / "toolchain.manifest.json"
+
+            first = build_manifest(toolchain, output)
+            first_bytes = output.read_bytes()
+            second = build_manifest(toolchain, output)
+
+            self.assertEqual(first, second)
+            self.assertEqual(output.read_bytes(), first_bytes)
+            self.assertEqual(
+                [entry["path"] for entry in first["files"]],
+                ["bin/lean", "bin/lean-link", "lib/lean/Cuda.olean"],
+            )
+            symlink = first["files"][1]
+            self.assertEqual(symlink["type"], "symlink")
+            self.assertEqual(symlink["size"], len(b"lean"))
+            self.assertEqual(validate_manifest(first)["privateLeanSources"], 0)
+
+    def test_build_manifest_rejects_private_sources_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            toolchain = temporary_root / "lean-toolchain"
+            private_source = toolchain / "src" / "lean" / "Lean" / "Secret.lean"
+            private_source.parent.mkdir(parents=True)
+            private_source.write_text("private\n", encoding="utf-8")
+            output = temporary_root / "toolchain.manifest.json"
+
+            with self.assertRaisesRegex(ContractError, "forbidden installed Lean sources"):
+                build_manifest(toolchain, output)
+            self.assertFalse(output.exists())
+
+    def test_build_manifest_output_must_be_outside_toolchain(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            toolchain = Path(temporary) / "lean-toolchain"
+            toolchain.mkdir()
+            with self.assertRaisesRegex(ContractError, "outside the toolchain root"):
+                build_manifest(toolchain, toolchain / "manifest.json")
 
 
 class SiteGenerationTests(unittest.TestCase):
