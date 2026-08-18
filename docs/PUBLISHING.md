@@ -48,18 +48,20 @@ libraries, public headers, licenses, and the normal command-line tools.
 1. Derive `nightly-YYYY-MM-DD`, using `-revN` only for a same-day retry, and configure Lean with
    the corresponding `cuda-nightly.<date>[.revN].g<short-commit>` version.
 2. Build Linux x86_64 and AArch64 from the same immutable private source commit.
-3. Install through Lean's native stage install target with `INSTALL_LEAN_SOURCES=OFF`. Do not
+3. Remove the completed `stage0` bootstrap tree, then run the full Lean test suite against the
+   `stage1` build on both architectures before allocating space for an installed distribution.
+4. Install through Lean's native stage install target with `INSTALL_LEAN_SOURCES=OFF`. Do not
    install private `src/lean/**/*.lean` files.
-4. Run installed-tree validation, extracted Lake CUDA smoke, and the full Lean test suite on both
-   architectures. The GitHub-hosted x86_64 job verifies compilation, device linking, native
+5. Run installed-tree validation and the extracted Lake CUDA smoke on both architectures. The
+   GitHub-hosted x86_64 job verifies compilation, device linking, native
    linking, packaging, and source privacy without claiming GPU execution; tests that require an
    attached GPU must report skips. The ARM64 GB10 job is the live `sm_121` execution gate.
-5. Generate deterministic manifests with `release_tool.py build-manifest`, then run
+6. Generate deterministic manifests with `release_tool.py build-manifest`, then run
    `verify-manifest` as the privacy gate on both manifests. Generate checksum sidecars for both
    standard Lean archives.
-6. After both architecture jobs pass, create the companion prerelease and upload the two archives,
+7. After both architecture jobs pass, create the companion prerelease and upload the two archives,
    sidecars, and manifests. Keep temporary Actions-artifact retention to one day after handoff.
-7. Add `releases/<release-id>.json`, run `make check`, and push it. Pages deployment then updates
+8. Add `releases/<release-id>.json`, run `make check`, and push it. Pages deployment then updates
    the release index and latest pointer.
 
 Publishing the GitHub release before the metadata commit creates a safe short interval in which an
