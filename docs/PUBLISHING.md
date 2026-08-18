@@ -105,7 +105,7 @@ nightly identity, runs the canonical release build and full test suite on both a
 checks the source-free installed tree and an extracted Lake CUDA project, and creates this
 repository's prerelease only after the complete dual-architecture matrix passes.
 
-A same-repository pull request carrying the `cuda-release-ci` label runs the credential-free
+A same-repository pull request carrying the `cuda-package-ci` label runs the credential-free
 x86_64 package gate on GitHub-hosted Ubuntu. That gate never checks out this companion repository,
 uses publishing credentials, generates release metadata, or publishes a release. It exists so an
 actual GitHub x86 build validates each candidate workflow before the scheduled dual-architecture
