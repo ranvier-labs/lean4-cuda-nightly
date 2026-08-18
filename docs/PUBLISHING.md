@@ -15,8 +15,9 @@ release assets and one small JSON record. Do not copy the private Git history in
    `CUDA_NIGHTLY_APP_PRIVATE_KEY`.
 5. Keep the ordinary private workflow `GITHUB_TOKEN` read-only; it cannot and should not publish
    across repositories.
-6. Register one Linux `X64` and one Linux `ARM64` self-hosted runner on the private build
-   repository. Both runners need the `cuda-13` label, CUDA 13, CMake, Make, Python, and zstd.
+6. Register one Linux `ARM64` self-hosted runner on the private build repository with the
+   `cuda-13` label, CUDA 13, CMake, Make, Python, and zstd. The x86_64 package gate runs on a
+   GitHub-hosted Ubuntu 24.04 runner and installs NVIDIA's CUDA 13 compiler packages itself.
 
 ## Native Lean release path
 
@@ -50,7 +51,9 @@ libraries, public headers, licenses, and the normal command-line tools.
 3. Install through Lean's native stage install target with `INSTALL_LEAN_SOURCES=OFF`. Do not
    install private `src/lean/**/*.lean` files.
 4. Run installed-tree validation, extracted Lake CUDA smoke, and the full Lean test suite on both
-   architectures.
+   architectures. The GitHub-hosted x86_64 job verifies compilation, device linking, native
+   linking, packaging, and source privacy without claiming GPU execution; tests that require an
+   attached GPU must report skips. The ARM64 GB10 job is the live `sm_121` execution gate.
 5. Generate deterministic manifests with `release_tool.py build-manifest`, then run
    `verify-manifest` as the privacy gate on both manifests. Generate checksum sidecars for both
    standard Lean archives.
@@ -101,6 +104,12 @@ The private compiler repository owns `.github/workflows/cuda-nightly.yml`. It de
 nightly identity, runs the canonical release build and full test suite on both architectures,
 checks the source-free installed tree and an extracted Lake CUDA project, and creates this
 repository's prerelease only after the complete dual-architecture matrix passes.
+
+A same-repository pull request carrying the `cuda-release-ci` label runs the credential-free
+x86_64 package gate on GitHub-hosted Ubuntu. That gate never checks out this companion repository,
+uses publishing credentials, generates release metadata, or publishes a release. It exists so an
+actual GitHub x86 build validates each candidate workflow before the scheduled dual-architecture
+publication path is enabled.
 
 The workflow uploads standard Lean archives plus SHA-256 sidecars and deterministic manifests. A
 release is not advertised as `latest` until its verified `releases/<release-id>.json` record has
