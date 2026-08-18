@@ -48,8 +48,8 @@ libraries, public headers, licenses, and the normal command-line tools.
 1. Derive `nightly-YYYY-MM-DD`, using `-revN` only for a same-day retry, and configure Lean with
    the corresponding `cuda-nightly.<date>[.revN].g<short-commit>` version.
 2. Build Linux x86_64 and AArch64 from the same immutable private source commit.
-3. Remove the completed `stage0` bootstrap tree, then run the full Lean test suite against the
-   `stage1` build on both architectures before allocating space for an installed distribution.
+3. Run the full Lean test suite against the `stage1` build on both architectures before allocating
+   space for an installed distribution.
 4. Install through Lean's native stage install target with `INSTALL_LEAN_SOURCES=OFF`. Do not
    install private `src/lean/**/*.lean` files.
 5. Run installed-tree validation and the extracted Lake CUDA smoke on both architectures. The
