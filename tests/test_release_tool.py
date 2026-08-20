@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from html.parser import HTMLParser
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -8,12 +9,15 @@ import tempfile
 import unittest
 
 from scripts.release_tool import (
+    CUDA_UPSTREAM_REPOSITORY,
     ContractError,
     build_manifest,
+    build_record,
     build_site,
     load_release_records,
     validate_manifest,
     validate_release,
+    write_json,
 )
 
 
@@ -66,6 +70,9 @@ class ReleaseValidationTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ContractError, "ranvier-labs/lean4-cuda-nightly"):
             validate_release(self.record)
+
+    def test_cuda_upstream_is_the_private_ranvier_repository(self) -> None:
+        self.assertEqual(CUDA_UPSTREAM_REPOSITORY, "ranvier-labs/lean4-cuda-backend")
 
 
 class ManifestPolicyTests(unittest.TestCase):
@@ -152,6 +159,130 @@ class ManifestPolicyTests(unittest.TestCase):
             toolchain.mkdir()
             with self.assertRaisesRegex(ContractError, "outside the toolchain root"):
                 build_manifest(toolchain, toolchain / "manifest.json")
+
+
+class BuildRecordTests(unittest.TestCase):
+    def write_artifact(
+        self,
+        directory: Path,
+        *,
+        version: str,
+        suffix: str,
+        payload: bytes,
+        files: list[str],
+    ) -> tuple[Path, Path]:
+        archive = directory / f"lean-{version}-{suffix}.tar.zst"
+        archive.write_bytes(payload)
+        sidecar = Path(str(archive) + ".sha256")
+        digest = hashlib.sha256(payload).hexdigest()
+        sidecar.write_text(f"{digest}  {archive.name}\n", encoding="utf-8")
+        manifest = directory / f"lean-{version}-{suffix}.manifest.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "schema": "lean.cuda.release-manifest/v1",
+                    "fileCount": len(files),
+                    "files": [
+                        {
+                            "path": path,
+                            "sha256": "0" * 64,
+                            "size": 1,
+                            "type": "file",
+                        }
+                        for path in files
+                    ],
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return archive, manifest
+
+    def test_build_record_from_dual_architecture_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            version = "4.33.0-cuda-nightly.20260820.g0123456"
+            linux_archive, linux_manifest = self.write_artifact(
+                directory,
+                version=version,
+                suffix="linux",
+                payload=b"linux-toolchain",
+                files=["bin/lean", "include/lean/lean_cuda.h", "lib/lean/Cuda.olean"],
+            )
+            arm_archive, arm_manifest = self.write_artifact(
+                directory,
+                version=version,
+                suffix="linux_aarch64",
+                payload=b"aarch64-toolchain",
+                files=["bin/lean", "include/lean/lean_cuda.h", "lib/lean/Cuda.olean"],
+            )
+            record = build_record(
+                release_id="nightly-2026-08-20",
+                version=version,
+                commit="0123456789abcdef0123456789abcdef01234567",
+                tree="89abcdef0123456789abcdef0123456789abcdef",
+                published_at="2026-08-20T08:30:00Z",
+                workflow_url="https://github.com/ranvier-labs/lean4-cuda-backend/actions/runs/1",
+                cuda_toolkit_version="13.0.88",
+                ptx_architecture="compute_90",
+                registered=4035,
+                failures=0,
+                skipped=83,
+                umbrella_modules=66,
+                linux_archive=linux_archive,
+                linux_manifest=linux_manifest,
+                linux_aarch64_archive=arm_archive,
+                linux_aarch64_manifest=arm_manifest,
+            )
+            self.assertEqual(record["id"], "nightly-2026-08-20")
+            self.assertEqual(record["gates"]["dualArchitectureCI"], "passed")
+            self.assertFalse(record["gates"]["performanceClaims"])
+            self.assertEqual(
+                [artifact["architecture"] for artifact in record["artifacts"]],
+                ["x86_64", "aarch64"],
+            )
+            write_output = directory / "written.json"
+            write_json(write_output, record)
+            self.assertEqual(validate_release(json.loads(write_output.read_text()))["id"], record["id"])
+
+    def test_build_record_rejects_checksum_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            version = "4.33.0-cuda-nightly.20260820.g0123456"
+            linux_archive, linux_manifest = self.write_artifact(
+                directory,
+                version=version,
+                suffix="linux",
+                payload=b"linux-toolchain",
+                files=["bin/lean"],
+            )
+            Path(str(linux_archive) + ".sha256").write_text("0" * 64 + "  broken\n", encoding="utf-8")
+            arm_archive, arm_manifest = self.write_artifact(
+                directory,
+                version=version,
+                suffix="linux_aarch64",
+                payload=b"aarch64-toolchain",
+                files=["bin/lean"],
+            )
+            with self.assertRaisesRegex(ContractError, "does not match the archive contents"):
+                build_record(
+                    release_id="nightly-2026-08-20",
+                    version=version,
+                    commit="0123456789abcdef0123456789abcdef01234567",
+                    published_at="2026-08-20T08:30:00Z",
+                    workflow_url="https://github.com/ranvier-labs/lean4-cuda-backend/actions/runs/1",
+                    cuda_toolkit_version="13.0.88",
+                    ptx_architecture="compute_90",
+                    registered=1,
+                    failures=0,
+                    skipped=0,
+                    umbrella_modules=1,
+                    linux_archive=linux_archive,
+                    linux_manifest=linux_manifest,
+                    linux_aarch64_archive=arm_archive,
+                    linux_aarch64_manifest=arm_manifest,
+                )
 
 
 class SiteGenerationTests(unittest.TestCase):

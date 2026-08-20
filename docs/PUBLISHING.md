@@ -61,8 +61,10 @@ libraries, public headers, licenses, and the normal command-line tools.
    standard Lean archives.
 7. After both architecture jobs pass, create the companion prerelease and upload the two archives,
    sidecars, and manifests. Keep temporary Actions-artifact retention to one day after handoff.
-8. Add `releases/<release-id>.json`, run `make check`, and push it. Pages deployment then updates
-   the release index and latest pointer.
+8. Generate `releases/<release-id>.json` with `release_tool.py build-record` from those published
+   assets, run `make check`, and push it. Pages deployment then updates the release index and
+   latest pointer. The private compiler workflow performs this metadata commit after the GitHub
+   Release exists so agents never observe a `latest` pointer with missing URLs.
 
 Publishing the GitHub release before the metadata commit creates a safe short interval in which an
 asset exists but is not advertised. Reversing the order could make agents observe broken URLs.
@@ -113,6 +115,10 @@ uses publishing credentials, generates release metadata, or publishes a release.
 actual GitHub x86 build validates each candidate workflow before the scheduled dual-architecture
 publication path is enabled.
 
-The workflow uploads standard Lean archives plus SHA-256 sidecars and deterministic manifests. A
-release is not advertised as `latest` until its verified `releases/<release-id>.json` record has
-also been committed here; that final metadata step preserves the release-before-pointer ordering.
+The workflow uploads standard Lean archives plus SHA-256 sidecars and deterministic manifests, then
+commits the verified `releases/<release-id>.json` record. A release is not advertised as `latest`
+until that metadata commit lands; the final step preserves the release-before-pointer ordering.
+
+The private compiler repository is `ranvier-labs/lean4-cuda-backend`. Scheduled CI there publishes
+CUDA nightlies to this companion repository; it does not publish official `leanprover/lean4`
+nightlies.

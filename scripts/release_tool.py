@@ -45,6 +45,12 @@ ARCHITECTURES = {
     },
 }
 
+DEFAULT_LIMITATIONS = (
+    "Experimental nightly APIs may change incompatibly.",
+    "This release carries no H100 performance claim.",
+)
+CUDA_UPSTREAM_REPOSITORY = "ranvier-labs/lean4-cuda-backend"
+
 
 class ContractError(Exception):
     """Public release metadata violates the distribution contract."""
@@ -542,6 +548,144 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def read_sha256_sidecar(path: Path) -> str:
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except OSError as error:
+        raise ContractError(f"{path}: cannot read checksum sidecar: {error}") from error
+    if not text:
+        fail(str(path), "checksum sidecar is empty")
+    digest = text.split()[0]
+    require_sha256(digest, str(path))
+    return digest
+
+
+def artifact_from_files(
+    *,
+    architecture: str,
+    version: str,
+    release_id: str,
+    archive: Path,
+    manifest: Path,
+) -> dict[str, Any]:
+    require(architecture in ARCHITECTURES, str(archive), f"unknown architecture {architecture}")
+    require(archive.is_file(), str(archive), "archive must be a file")
+    require(manifest.is_file(), str(manifest), "manifest must be a file")
+    sidecar = Path(str(archive) + ".sha256")
+    digest = file_sha256(archive)
+    if sidecar.is_file():
+        sidecar_digest = read_sha256_sidecar(sidecar)
+        require(
+            sidecar_digest == digest,
+            str(sidecar),
+            "does not match the archive contents",
+        )
+    manifest_summary = validate_manifest(read_json(manifest), str(manifest))
+    suffix = ARCHITECTURES[architecture]["suffix"]
+    name = f"lean-{version}-{suffix}.tar.zst"
+    require(archive.name == name, str(archive), f"must be named {name}")
+    manifest_name = f"lean-{version}-{suffix}.manifest.json"
+    require(manifest.name == manifest_name, str(manifest), f"must be named {manifest_name}")
+    release_base_url = f"https://github.com/{DISTRIBUTION_REPOSITORY}/releases/download/{release_id}/"
+    return {
+        "hostSystem": "Linux",
+        "architecture": architecture,
+        "name": name,
+        "url": release_base_url + name,
+        "checksumUrl": release_base_url + name + ".sha256",
+        "sha256": digest,
+        "size": archive.stat().st_size,
+        "sassArchitectures": list(ARCHITECTURES[architecture]["sass"]),
+        "manifest": {
+            "schema": MANIFEST_SCHEMA,
+            "name": manifest_name,
+            "url": release_base_url + manifest_name,
+            "sha256": file_sha256(manifest),
+            "size": manifest.stat().st_size,
+            "fileCount": manifest_summary["fileCount"],
+        },
+    }
+
+
+def build_record(
+    *,
+    release_id: str,
+    version: str,
+    commit: str,
+    published_at: str,
+    workflow_url: str,
+    cuda_toolkit_version: str,
+    ptx_architecture: str,
+    registered: int,
+    failures: int,
+    skipped: int,
+    umbrella_modules: int,
+    linux_archive: Path,
+    linux_manifest: Path,
+    linux_aarch64_archive: Path,
+    linux_aarch64_manifest: Path,
+    tree: str | None = None,
+    extracted_smoke: bool = True,
+) -> dict[str, Any]:
+    source: dict[str, Any] = {
+        "visibility": "private",
+        "commit": commit,
+    }
+    if tree is not None:
+        source["tree"] = tree
+    record = {
+        "schema": RELEASE_SCHEMA,
+        "channel": "nightly",
+        "id": release_id,
+        "version": version,
+        "publishedAt": published_at,
+        "source": source,
+        "build": {
+            "cudaToolkitVersion": cuda_toolkit_version,
+            "ptxArchitecture": ptx_architecture,
+            "workflowUrl": workflow_url,
+            "validation": {
+                "registered": registered,
+                "failures": failures,
+                "skipped": skipped,
+                "umbrellaModules": umbrella_modules,
+                "extractedSmoke": extracted_smoke,
+            },
+        },
+        "gates": {
+            "dualArchitectureCI": "passed",
+            "h100": "not-run",
+            "performanceClaims": False,
+        },
+        "contentPolicy": {
+            "privateLeanSources": "excluded",
+            "sdkHeaders": "included",
+        },
+        "installation": {
+            "repository": DISTRIBUTION_REPOSITORY,
+            "elanToolchain": f"{DISTRIBUTION_REPOSITORY}:{release_id}",
+        },
+        "artifacts": [
+            artifact_from_files(
+                architecture="x86_64",
+                version=version,
+                release_id=release_id,
+                archive=linux_archive,
+                manifest=linux_manifest,
+            ),
+            artifact_from_files(
+                architecture="aarch64",
+                version=version,
+                release_id=release_id,
+                archive=linux_aarch64_archive,
+                manifest=linux_aarch64_manifest,
+            ),
+        ],
+        "limitations": list(DEFAULT_LIMITATIONS),
+    }
+    return validate_release(record)
+
+
 def command_validate(arguments: argparse.Namespace) -> int:
     count = 0
     if arguments.records_dir is not None:
@@ -597,6 +741,40 @@ def command_build_site(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_build_record(arguments: argparse.Namespace) -> int:
+    record = build_record(
+        release_id=arguments.release_id,
+        version=arguments.version,
+        commit=arguments.commit,
+        tree=arguments.tree,
+        published_at=arguments.published_at,
+        workflow_url=arguments.workflow_url,
+        cuda_toolkit_version=arguments.cuda_toolkit_version,
+        ptx_architecture=arguments.ptx_architecture,
+        registered=arguments.registered,
+        failures=arguments.failures,
+        skipped=arguments.skipped,
+        umbrella_modules=arguments.umbrella_modules,
+        extracted_smoke=arguments.extracted_smoke,
+        linux_archive=arguments.linux_archive,
+        linux_manifest=arguments.linux_manifest,
+        linux_aarch64_archive=arguments.linux_aarch64_archive,
+        linux_aarch64_manifest=arguments.linux_aarch64_manifest,
+    )
+    write_json(arguments.output, record)
+    print(
+        json.dumps(
+            {
+                "file": str(arguments.output),
+                "id": record["id"],
+                "version": record["version"],
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def parse_arguments(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -627,6 +805,30 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     site_parser.add_argument("--schema-dir", type=Path)
     site_parser.add_argument("--output-dir", type=Path, required=True)
     site_parser.set_defaults(handler=command_build_site)
+
+    record_parser = subparsers.add_parser(
+        "build-record",
+        help="write a validated nightly release record from published artifacts",
+    )
+    record_parser.add_argument("--release-id", required=True)
+    record_parser.add_argument("--version", required=True)
+    record_parser.add_argument("--commit", required=True)
+    record_parser.add_argument("--tree")
+    record_parser.add_argument("--published-at", required=True)
+    record_parser.add_argument("--workflow-url", required=True)
+    record_parser.add_argument("--cuda-toolkit-version", required=True)
+    record_parser.add_argument("--ptx-architecture", required=True)
+    record_parser.add_argument("--registered", type=int, required=True)
+    record_parser.add_argument("--failures", type=int, default=0)
+    record_parser.add_argument("--skipped", type=int, required=True)
+    record_parser.add_argument("--umbrella-modules", type=int, required=True)
+    record_parser.add_argument("--extracted-smoke", action=argparse.BooleanOptionalAction, default=True)
+    record_parser.add_argument("--linux-archive", type=Path, required=True)
+    record_parser.add_argument("--linux-manifest", type=Path, required=True)
+    record_parser.add_argument("--linux-aarch64-archive", type=Path, required=True)
+    record_parser.add_argument("--linux-aarch64-manifest", type=Path, required=True)
+    record_parser.add_argument("--output", type=Path, required=True)
+    record_parser.set_defaults(handler=command_build_record)
     return parser.parse_args(argv)
 
 
