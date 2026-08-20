@@ -143,8 +143,55 @@ footer {
   font-size: 0.92rem;
 }
 
+main.wide { width: min(52rem, calc(100% - 2.4rem)); }
+
+figure { margin: 2.2rem 0 0; }
+figure img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: #000;
+}
+figure.pixel img { image-rendering: pixelated; image-rendering: crisp-edges; }
+figcaption {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin-top: 0.55rem;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.pair figure { margin-top: 1.4rem; }
+
+.catalog { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.catalog th, .catalog td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.45rem 0.6rem 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.catalog th {
+  color: var(--muted);
+  font-weight: 500;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+.catalog td:first-child {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  padding-right: 1rem;
+}
+
 @media (max-width: 40rem) {
   .hero { padding-top: 3rem; }
   .release-row { align-items: flex-start; flex-direction: column; }
   nav { flex-direction: column; gap: 0.5rem; }
+  .pair { grid-template-columns: 1fr; }
 }

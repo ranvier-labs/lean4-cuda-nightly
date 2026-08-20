@@ -32,6 +32,7 @@ because consumer `nvcc` still needs them.
 | Compile path, attributes, requirements | `docs/index.md` |
 | `DeviceM`, launch ABI, persistent workers | `docs/kernels.md` |
 | Concurrency, SM/cluster, alpha limits | `docs/runtime.md` |
+| Examples and simulation stills | `gallery.md` |
 | Human install notes | `install.md` |
 | Noninteractive install | `agent-install.md` |
 | Nightly pointer | `releases/v1/latest.json` |

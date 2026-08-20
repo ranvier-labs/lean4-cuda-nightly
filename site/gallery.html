@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Lean CUDA examples and simulation results.">
+  <title>Gallery · Lean CUDA</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="alternate" type="text/markdown" href="gallery.md" title="Markdown">
+</head>
+<body>
+  <main class="wide">
+    <nav>
+      <a class="brand" href="index.html">lean cuda</a>
+      <div class="links">
+        <a href="docs/index.html">guide</a>
+        <a href="gallery.html" aria-current="page">gallery</a>
+        <a href="install.html">install</a>
+        <a href="agent.md">agents</a>
+      </div>
+    </nav>
+
+    <header class="page-hero">
+      <h1>Examples</h1>
+      <p class="lede">
+        Compact kernels and a few application workloads, all written in Lean.
+        The stills below are device outputs from GB10 runs.
+      </p>
+    </header>
+
+    <section>
+      <h2>Simulation results</h2>
+
+      <figure>
+        <img src="gallery/mandelbrot.png" alt="Mandelbrot set rendered by SM-as-core workers" width="1024" height="1024">
+        <figcaption>
+          <code>mandelbrot</code> — one cooperative block per SM, warp workers claiming
+          8×8 tiles from a shared ticket queue. 1024², 1000 iterations. Uneven cost;
+          every core stays busy.
+        </figcaption>
+      </figure>
+
+      <div class="pair">
+        <figure class="pixel">
+          <img src="gallery/mandelbrot-cores.png" alt="Per-tile SM ownership map for the Mandelbrot render" width="128" height="128">
+          <figcaption>
+            Tile ownership. Color is the physical SM that claimed the tile.
+          </figcaption>
+        </figure>
+        <figure class="pixel">
+          <img src="gallery/plume.png" alt="Buoyant plume on a regridding-free AMR tree" width="128" height="128">
+          <figcaption>
+            <code>plume_amr</code> — incompressible buoyant plume. The tree
+            re-refines in-kernel; slots recycle.
+          </figcaption>
+        </figure>
+      </div>
+
+      <figure class="pixel">
+        <img src="gallery/shock.png" alt="Circular blast on an adaptive mesh with HLLC Riemann solver" width="256" height="256">
+        <figcaption>
+          Compressible Euler, Godunov + HLLC, Löhner density-gradient indicator.
+          White cells are coarse; the front is refined. Same megakernel as the plume.
+        </figcaption>
+      </figure>
+
+      <figure>
+        <img src="gallery/loss.svg" alt="Cross-entropy loss over 2048 persistent training steps" width="960" height="480">
+        <figcaption>
+          <code>persistent_training</code> — 2048 SGD steps of a 16-class linear
+          classifier inside one persistent launch. 64-step mean loss 2.68 → 0.17.
+        </figcaption>
+      </figure>
+
+      <figure>
+        <img src="gallery/stealth.svg" alt="Optimized 2D material silhouette and scattering metric" width="1120" height="560">
+        <figcaption>
+          <code>stealth_shape_optimization</code> — discrete-form Helmholtz inverse
+          design. One CTA per candidate; forward, Hermitian adjoint, and material VJP
+          in one launch. A 2D silhouette proxy, not a 3D aircraft or certified RCS.
+        </figcaption>
+      </figure>
+    </section>
+
+    <section>
+      <h2>Ready</h2>
+      <table class="catalog">
+        <thead>
+          <tr><th>id</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr><td>saxpy</td><td>Typed launch, device buffers, bit-exact host oracle.</td></tr>
+          <tr><td>reduce</td><td>Dynamic shared memory, convergent block reduction.</td></tr>
+          <tr><td>histogram</td><td>Global atomics; Philox RNG replayed on the host.</td></tr>
+          <tr><td>async_launch</td><td>Streams, events, <code>launchOn</code>, kernel handles.</td></tr>
+          <tr><td>gemm</td><td>Shared-memory tiled SGEMM, typed static tensor views.</td></tr>
+          <tr><td>features</td><td>Inductives, closures, arrays, strings, <code>ST.Ref</code> on device.</td></tr>
+          <tr><td>physical_cores</td><td><code>Cuda.SM</code>, Hopper clusters, DSM, mailboxes.</td></tr>
+          <tr><td>cluster_stencil</td><td>Jacobi stencil, interior halo through distributed shared memory.</td></tr>
+          <tr><td>host_io</td><td>Mapped typed queues and owned bulk regions.</td></tr>
+          <tr><td>mandelbrot</td><td>Ticket-scheduled SM workers, ownership map.</td></tr>
+          <tr><td>plume_amr</td><td>Regridding-free tree AMR; plume and HLLC shock.</td></tr>
+          <tr><td>persistent_training</td><td>Full SGD loop in one persistent launch.</td></tr>
+          <tr><td>mixture_of_kittens</td><td>Typed shared-plus-routed SwiGLU, eight gradient groups.</td></tr>
+          <tr><td>stealth_shape_optimization</td><td>DEC Maxwell / Helmholtz reciprocal adjoint.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Planned</h2>
+      <table class="catalog">
+        <thead>
+          <tr><th>id</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr><td>hybrid_mpc</td><td>Batched hybrid-event MPC.</td></tr>
+          <tr><td>branchingflows_molecule</td><td>Variable-length molecular branching flows.</td></tr>
+          <tr><td>transformer_training</td><td>Transformer forward, backward, optimizer, loss.</td></tr>
+          <tr><td>persistent_llama</td><td>Token-by-token decode, persistent KV cache.</td></tr>
+          <tr><td>sparse_event_kda</td><td>Sparse event-time KDA, no rasterization.</td></tr>
+          <tr><td>streaming_moe</td><td>Deterministic compact MoE routing.</td></tr>
+          <tr><td>torchlean_certified_inference</td><td>Shared spec and certificate with TorchLean.</td></tr>
+          <tr><td>r1_vm</td><td>CUDA-resident R1 interpreter.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      <p>
+        Runners live in the companion example repository.
+        <a href="gallery.md">Markdown</a>
+      </p>
+    </footer>
+  </main>
+</body>
+</html>

@@ -343,7 +343,8 @@ class SiteGenerationTests(unittest.TestCase):
 
     def test_agent_surface_is_markdown(self) -> None:
         required = {
-            "llms.txt": ("agent.md", "about.md", "docs/index.md", "Prefer markdown"),
+            "llms.txt": ("agent.md", "about.md", "docs/index.md", "gallery.md", "Prefer markdown"),
+            "gallery.md": ("mandelbrot.png", "plume_amr", "stealth_shape_optimization"),
             "agent.md": ("Fail closed", "@[cuda_kernel]", "releases/v1/latest.json"),
             "about.md": ("Not an upstream Lean release", "@[cuda_kernel]"),
             "docs/index.md": ("LEAN_CUDA=ON", "@[cuda_persistent]"),
@@ -372,12 +373,22 @@ class SiteGenerationTests(unittest.TestCase):
                 "docs/kernels.html",
                 "docs/runtime.html",
                 "install.html",
+                "gallery.html",
             ):
                 path = output / relative
                 with self.subTest(relative=relative):
                     self.assertTrue(path.is_file())
                     text = path.read_text(encoding="utf-8")
                     self.assertIn("lean cuda", text)
+            for relative in (
+                "gallery.md",
+                "gallery/mandelbrot.png",
+                "gallery/shock.png",
+                "gallery/loss.svg",
+                "gallery/stealth.svg",
+            ):
+                with self.subTest(relative=relative):
+                    self.assertTrue((output / relative).is_file())
             landing = (output / "index.html").read_text(encoding="utf-8")
             self.assertIn("docs/index.html", landing)
             self.assertIn("@[cuda_kernel]", landing)
