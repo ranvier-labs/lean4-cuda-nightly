@@ -22,7 +22,7 @@ body {
   font-size: 1.05rem;
 }
 
-code, pre, .mono, nav, .eyebrow {
+code, pre, .mono, nav {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -53,15 +53,6 @@ nav a:hover, nav a[aria-current="page"] { color: var(--text); }
 
 .hero { padding: 4.5rem 0 2.2rem; }
 .page-hero { padding: 2.6rem 0 1.2rem; }
-
-.eyebrow {
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  margin: 0 0 0.8rem;
-}
 
 h1, h2, h3 { font-weight: 600; line-height: 1.15; letter-spacing: -0.03em; }
 h1 { font-size: clamp(2.1rem, 6vw, 3.1rem); margin: 0 0 1rem; }
