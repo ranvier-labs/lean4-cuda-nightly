@@ -3,51 +3,86 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Nightly binary toolchains for the experimental Lean CUDA backend.">
-  <title>Lean CUDA nightlies</title>
+  <meta name="description" content="Lean CUDA compiles ordinary Lean 4 declarations to CUDA device code.">
+  <title>Lean CUDA</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main>
+    <nav>
+      <a class="brand" href="index.html" aria-current="page">lean cuda</a>
+      <div class="links">
+        <a href="docs/index.html">guide</a>
+        <a href="install.html">install</a>
+        <a href="#nightlies">nightlies</a>
+      </div>
+    </nav>
+
     <header class="hero">
-      <p class="eyebrow">Experimental binary distribution</p>
-      <h1>Lean CUDA nightlies</h1>
+      <p class="eyebrow">Experimental Lean 4 compiler backend</p>
+      <h1>Write the kernel in Lean.</h1>
       <p class="lede">
-        Immutable Linux x86_64 and AArch64 toolchains for compiling Lean declarations to CUDA.
-        These builds are independent experimental prereleases, not upstream Lean releases.
+        Lean CUDA compiles ordinary Lean declarations to CUDA. Control flow, tiling,
+        synchronization, and ownership stay in Lean. C++ is only for instruction-sized
+        shims that CUDA C++ cannot write directly.
       </p>
       <div class="actions">
-        <a class="primary" href="install.html">Install a nightly</a>
-        <a href="agent-install.md">Instructions for agents</a>
-        <a href="releases/v1/index.json">Release JSON</a>
+        <a class="primary" href="docs/index.html">Read the guide</a>
+        <a href="install.html">Install a nightly</a>
       </div>
     </header>
 
-    <section aria-labelledby="status-title">
-      <h2 id="status-title">Current channel</h2>
-      <div class="status-card">{{LATEST_STATUS}}</div>
+    <section aria-labelledby="kernel-title">
+      <h2 id="kernel-title">A kernel is a Lean definition</h2>
+      <p>
+        Mark a <code>Cuda.DeviceM</code> function with <code>@[cuda_kernel]</code>.
+        The compiler emits a CUDA translation unit and typed host companions:
+        <code>launch</code>, <code>attributes</code>, <code>occupancy</code>.
+      </p>
+      <pre><code>@[cuda_kernel]
+def saxpy (params : SaxpyParams) (xs ys : Cuda.DeviceSlice Float32) :
+    Cuda.DeviceM Unit := do
+  let i := (← Cuda.blockIdxX) * (← Cuda.blockDimX) + (← Cuda.threadIdxX)
+  if i.toUSize &lt; xs.size then
+    let x ← Cuda.loadFloat32 xs.ptr i.toUSize
+    let y ← Cuda.loadFloat32 ys.ptr i.toUSize
+    Cuda.storeFloat32 ys.ptr i.toUSize (params.a * x + y)</code></pre>
+      <p class="muted">
+        That is the SAXPY example from the companion example repository, verified
+        bit-for-bit against host <code>Float32</code> arithmetic.
+      </p>
     </section>
 
-    <section aria-labelledby="contract-title">
-      <h2 id="contract-title">What a nightly means</h2>
+    <section aria-labelledby="principles-title">
+      <h2 id="principles-title">What this is</h2>
       <div class="grid">
         <article>
-          <h3>Two native architectures</h3>
-          <p>Linux x86_64 and Linux AArch64 are built from one immutable private source commit.</p>
+          <h3>Lean owns the kernel</h3>
+          <p>Not a C++ kernel called from Lean. The LCNF pipeline lowers the marked declaration to CUDA C++.</p>
         </article>
         <article>
-          <h3>Validated after extraction</h3>
-          <p>Each archive passes provenance, module-coverage, Lake CUDA smoke, and full-suite gates.</p>
+          <h3>A narrow launch ABI</h3>
+          <p>Parameters are scalars, device pointers, <code>Dim3</code>, or address-free POD records. Host <code>IO</code> and tasks are rejected on device.</p>
         </article>
         <article>
-          <h3>Private compiler source</h3>
-          <p>Compiled toolchains omit private Lean sources. Required public CUDA SDK headers remain.</p>
+          <h3>Shims, not a DSL dump</h3>
+          <p>TMA, WGMMA, <code>mbarrier</code>, <code>stmatrix</code>, and register redistribution are force-inlined instruction shims.</p>
         </article>
         <article>
-          <h3>No implied performance claim</h3>
-          <p>H100 validation is recorded separately and is not implied by an ordinary nightly.</p>
+          <h3>Alpha, not upstream</h3>
+          <p>The attributes, launch ABI, and Lake recipe will change. This is not an official Lean release.</p>
         </article>
       </div>
+    </section>
+
+    <section aria-labelledby="status-title" id="nightlies">
+      <h2 id="status-title">Nightly channel</h2>
+      <div class="status-card">{{LATEST_STATUS}}</div>
+      <p class="muted">
+        Linux x86_64 and AArch64 from one private source commit. Private compiler
+        <code>.lean</code> sources are omitted; public CUDA SDK headers remain.
+        A nightly does not imply an H100 performance result.
+      </p>
     </section>
 
     <section aria-labelledby="releases-title">
@@ -59,7 +94,9 @@
 
     <footer>
       <p>
-        Apache 2.0 · <a href="llms.txt">llms.txt</a> ·
+        Apache 2.0 ·
+        <a href="docs/index.html">Guide</a> ·
+        <a href="llms.txt">llms.txt</a> ·
         <a href="https://github.com/ranvier-labs/lean4-cuda-nightly">Distribution repository</a>
       </p>
     </footer>

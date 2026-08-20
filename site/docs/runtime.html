@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Lean CUDA concurrency, physical cores, and alpha limits.">
+  <title>Runtime · Lean CUDA</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <main>
+    <nav>
+      <a class="brand" href="../index.html">lean cuda</a>
+      <div class="links">
+        <a href="index.html" aria-current="page">guide</a>
+        <a href="../install.html">install</a>
+      </div>
+    </nav>
+
+    <header class="page-hero">
+      <p class="eyebrow">Documentation</p>
+      <h1>Runtime and limits</h1>
+      <p class="lede">
+        CUDA’s worker hierarchy is structured, not spawned. Hardware features are
+        gated at compile time. Alpha restrictions still apply.
+      </p>
+    </header>
+
+    <ul class="doc-nav">
+      <li><a href="index.html">overview</a></li>
+      <li><a href="kernels.html">kernels</a></li>
+      <li><a href="runtime.html" aria-current="page">runtime</a></li>
+    </ul>
+
+    <section>
+      <h2>Structured concurrency</h2>
+      <p>
+        <code>Lean.Cuda.Concurrent</code> organizes workers that already exist:
+        <code>Thread.{blockIndex, gridBlockIndex, gridIndex}</code>, strided
+        <code>Warp</code> / <code>Block</code> / <code>Grid.forEach</code>, scope
+        <code>sync</code>, and exactly-once <code>single</code>. These do not spawn
+        host-style tasks. Warp and block collectives need convergent participation.
+        Grid collectives need a cooperative launch.
+      </p>
+    </section>
+
+    <section>
+      <h2>Physical cores</h2>
+      <p>
+        <code>Cuda.SM</code> launches one cooperative block per SM and splits it into
+        independently synchronized warp-group workers. <code>Cuda.Cluster</code>
+        treats a static Hopper thread-block cluster as one core, with a block worker
+        in each rank and distributed shared memory for halo exchange.
+        <code>Cuda.Mailbox</code> is a bounded typed POD channel.
+        <code>Cuda.HostIO</code> maps typed control queues and owned bulk regions
+        (host address, CUDA address, or DMA-BUF).
+      </p>
+    </section>
+
+    <section>
+      <h2>Hardware surface</h2>
+      <ul>
+        <li>Typed WMMA, WGMMA, TMA, <code>mbarrier</code>, bulk-copy, tensor memory (tcgen05).</li>
+        <li>Hopper register redistribution via <code>setmaxnreg</code>, whole-program only.</li>
+        <li>Architecture-gated shims fail at compile time off the required SM, not as device <code>trap</code>.</li>
+        <li>Optional in-kernel tracing to Perfetto JSON; kernels that never call it have no tracing overhead.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Alpha restrictions</h2>
+      <ul>
+        <li>Hopper register budgets require whole-program CUDA compilation.</li>
+        <li>Default-stream <code>launch</code> does not order against user streams.</li>
+        <li>Device allocation is a per-block bump arena; <code>ST.Ref</code> is thread-private.</li>
+        <li>Tests skip cleanly without matching hardware — inspect output, do not trust a green skip.</li>
+        <li>A nightly binary does not carry an H100 performance claim unless its release record says so.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p><a href="index.html">Overview</a> · <a href="../install.html">Install a nightly</a></p>
+    </footer>
+  </main>
+</body>
+</html>

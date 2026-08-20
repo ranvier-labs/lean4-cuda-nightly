@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Guide to the experimental Lean CUDA compiler backend.">
+  <title>Guide · Lean CUDA</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <main>
+    <nav>
+      <a class="brand" href="../index.html">lean cuda</a>
+      <div class="links">
+        <a href="index.html" aria-current="page">guide</a>
+        <a href="../install.html">install</a>
+      </div>
+    </nav>
+
+    <header class="page-hero">
+      <p class="eyebrow">Documentation</p>
+      <h1>The Lean CUDA extension</h1>
+      <p class="lede">
+        How marked Lean declarations become CUDA device code, what you can write
+        inside a kernel, and what the alpha still refuses.
+      </p>
+    </header>
+
+    <ul class="doc-nav">
+      <li><a href="index.html" aria-current="page">overview</a></li>
+      <li><a href="kernels.html">kernels</a></li>
+      <li><a href="runtime.html">runtime</a></li>
+    </ul>
+
+    <section>
+      <h2>Compile path</h2>
+      <p>
+        A staged Lean build configured with <code>LEAN_CUDA=ON</code> advertises
+        <code>[CUDA]</code> from <code>lean --features</code>. Marked declarations
+        go through LCNF, then a CUDA emitter writes a <code>.cu</code> translation
+        unit next to the usual C output:
+      </p>
+      <pre><code>lean --root=. -c Kernel.c --cuda=Kernel.cu \
+  -Dcompiler.postponeCompile=false Kernel.lean</code></pre>
+      <p>
+        <code>nvcc</code> compiles that unit for the chosen <code>-arch</code>.
+        Lake packages use <code>Lake.buildLeanCudaO</code> and
+        <code>Lake.buildCudaDeviceLink</code>. The device-link step compiles the
+        installed device runtime for the package architecture, so an
+        <code>sm_90a</code> package does not pick up an <code>sm_121</code> runtime
+        object just because Lean itself was built on a Blackwell machine.
+      </p>
+      <p>
+        Whole-program mode (<code>codeMode := .wholeProgram</code>) compiles the
+        generated program and runtime as one translation unit with
+        <code>-rdc=false</code>. Hopper register budgets require that mode:
+        CUDA 13 <code>ptxas</code> otherwise discards <code>setmaxnreg</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Attributes</h2>
+      <ul>
+        <li><code>@[cuda_kernel]</code> — device entrypoint plus typed host launch companions.</li>
+        <li><code>@[cuda_device]</code> — helper used from device code, no host launch wrapper.</li>
+        <li><code>@[cuda_persistent]</code> — resident block workers behind a bounded host-to-device POD queue.</li>
+        <li><code>@[cuda_grid_persistent]</code> — grid-wide persistent workers.</li>
+        <li><code>@[cuda_launch_bounds]</code> / <code>@[cuda_max_registers]</code> — occupancy and register file.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Requirements</h2>
+      <ul>
+        <li>A CUDA-enabled Lean toolchain (nightly or a source build with <code>LEAN_CUDA=ON</code>).</li>
+        <li>CUDA 13, with <code>nvcc</code> on <code>PATH</code>.</li>
+        <li>An NVIDIA GPU for execution. Development targets GB10 (<code>sm_121</code>). Hopper-only features compile for <code>sm_90a</code> and execute on H100-class hardware.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>What this is not</h2>
+      <p>
+        It is not upstream Lean. It is not a general autograd transform.
+        Discrete-form adjoints and custom VJPs are explicit library code, not a tape.
+        GPU-less test runs can skip execution and still look green — read the test output.
+      </p>
+    </section>
+
+    <footer>
+      <p><a href="kernels.html">Kernels and launch</a> · <a href="../install.html">Install</a></p>
+    </footer>
+  </main>
+</body>
+</html>

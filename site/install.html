@@ -4,45 +4,53 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Install an immutable Lean CUDA nightly toolchain.">
-  <title>Install · Lean CUDA nightlies</title>
+  <title>Install · Lean CUDA</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main>
-    <header class="hero">
-      <p class="eyebrow"><a href="index.html">Lean CUDA nightlies</a></p>
+    <nav>
+      <a class="brand" href="index.html">lean cuda</a>
+      <div class="links">
+        <a href="docs/index.html">guide</a>
+        <a href="install.html" aria-current="page">install</a>
+      </div>
+    </nav>
+
+    <header class="page-hero">
+      <p class="eyebrow">Nightly toolchain</p>
       <h1>Install a nightly</h1>
       <p class="lede">
-        Nightlies are experimental Linux toolchains. Resolve the current release once, then pin
-        its immutable ID in your project.
+        Nightlies are experimental Linux toolchains. Resolve the current release once,
+        then pin its immutable ID. They are not upstream Lean releases.
       </p>
     </header>
 
     <section>
       <h2>Requirements</h2>
       <ul>
-        <li>Linux x86_64 or AArch64;</li>
-        <li><code>elan</code> for the preferred installation path;</li>
-        <li>CUDA 13 <code>nvcc</code> for compiling CUDA programs;</li>
-        <li>a CUDA-13-compatible NVIDIA driver and supported GPU for execution.</li>
+        <li>Linux x86_64 or AArch64</li>
+        <li><code>elan</code> for the convenient path</li>
+        <li>CUDA 13 <code>nvcc</code></li>
+        <li>a CUDA-13-compatible NVIDIA driver and supported GPU for execution</li>
       </ul>
     </section>
 
     <section>
       <h2>Convenient elan installation</h2>
       <p>
-        Read <a href="releases/v1/latest.json"><code>latest.json</code></a>. If its
-        <code>release</code> field is null, no public nightly exists yet. Otherwise follow its
-        metadata URL and copy the exact <code>installation.elanToolchain</code> value.
+        Read <a href="releases/v1/latest.json"><code>latest.json</code></a>. If
+        <code>release</code> is null, no public nightly exists yet. Otherwise follow
+        its metadata URL and copy the exact <code>installation.elanToolchain</code> value.
       </p>
       <pre><code>elan toolchain install ranvier-labs/lean4-cuda-nightly:nightly-YYYY-MM-DD
 elan run ranvier-labs/lean4-cuda-nightly:nightly-YYYY-MM-DD lean --version
 elan run ranvier-labs/lean4-cuda-nightly:nightly-YYYY-MM-DD lean --features</code></pre>
       <p>
-        Require <code>lean --features</code> to contain <code>CUDA</code>. Put the same pinned value
-        in a project's <code>lean-toolchain</code>; do not use a floating latest alias there.
-        Current elan downloads the custom GitHub Release asset over HTTPS but does not compare it
-        with this channel's checksum sidecar.
+        Require <code>lean --features</code> to contain <code>CUDA</code>. Put the same
+        pinned value in a project's <code>lean-toolchain</code>; do not use a floating
+        latest alias there. Current elan downloads the custom GitHub Release asset over
+        HTTPS but does not compare it with this channel's checksum sidecar.
       </p>
     </section>
 
@@ -56,6 +64,10 @@ elan run ranvier-labs/lean4-cuda-nightly:nightly-YYYY-MM-DD lean --features</cod
         <li>Set <code>LEAN_SYSROOT</code> to the extracted root and prepend its <code>bin/</code> to <code>PATH</code>.</li>
         <li>Optionally register that root with <code>elan toolchain link &lt;name&gt; &lt;root&gt;</code>.</li>
       </ol>
+      <p>
+        See also the <a href="agent-install.md">agent procedure</a> and
+        <a href="docs/index.html">the compiler guide</a>.
+      </p>
     </section>
 
     <footer>

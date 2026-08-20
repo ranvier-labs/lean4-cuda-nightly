@@ -1,7 +1,17 @@
-# Lean CUDA nightlies
+# Lean CUDA
 
-> Public binary distribution for an experimental CUDA-enabled Lean 4 toolchain. The compiler
-> source repository is private. This is not an upstream Lean release.
+> Experimental Lean 4 compiler backend that lowers marked declarations to CUDA device code.
+> Binary nightlies are distributed from this repository. The compiler source is private.
+> This is not an upstream Lean release.
+
+Human pages:
+
+- Landing: index.html
+- Guide: docs/index.html
+- Kernels and launch ABI: docs/kernels.html
+- Runtime, physical cores, alpha limits: docs/runtime.html
+- Human installation: install.html
+- Agent installation procedure: agent-install.md
 
 Authoritative machine-readable interfaces:
 
@@ -9,8 +19,6 @@ Authoritative machine-readable interfaces:
 - Ordered release index: releases/v1/index.json
 - Immutable release record: releases/v1/<release-id>.json
 - Release JSON schema: schema/release-v1.schema.json
-- Agent installation procedure: agent-install.md
-- Human installation guide: install.html
 - Release contract source: https://github.com/ranvier-labs/lean4-cuda-nightly/blob/main/docs/RELEASE_CONTRACT.md
 
 Rules for agents:
@@ -29,5 +37,7 @@ Rules for agents:
 6. CUDA 13 nvcc, a compatible NVIDIA driver, and a supported GPU are runtime prerequisites.
 7. A nightly does not imply an H100 performance result. Read `gates.h100` and
    `gates.performanceClaims` before making hardware-performance claims.
+8. Describe the backend as alpha. Lean owns kernel control flow; C++ is limited to instruction-sized
+   shims (TMA, WGMMA, mbarrier, stmatrix, register redistribution).
 
 Supported channel: nightly. Supported hosts: Linux x86_64 and Linux AArch64.

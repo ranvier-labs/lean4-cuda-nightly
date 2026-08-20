@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Lean CUDA kernels, DeviceM, and the host launch ABI.">
+  <title>Kernels · Lean CUDA</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <main>
+    <nav>
+      <a class="brand" href="../index.html">lean cuda</a>
+      <div class="links">
+        <a href="index.html" aria-current="page">guide</a>
+        <a href="../install.html">install</a>
+      </div>
+    </nav>
+
+    <header class="page-hero">
+      <p class="eyebrow">Documentation</p>
+      <h1>Kernels and launch</h1>
+      <p class="lede">
+        Device code is ordinary Lean in <code>Cuda.DeviceM</code>. The launch
+        boundary is intentionally small.
+      </p>
+    </header>
+
+    <ul class="doc-nav">
+      <li><a href="index.html">overview</a></li>
+      <li><a href="kernels.html" aria-current="page">kernels</a></li>
+      <li><a href="runtime.html">runtime</a></li>
+    </ul>
+
+    <section>
+      <h2>Inside a kernel</h2>
+      <p>
+        Available on device: control flow, recursive inductives, recursion, closures,
+        native structures, <code>Array</code>, <code>String</code>, arbitrary
+        <code>Nat</code>/<code>Int</code>, and thread-private <code>ST.Ref</code>.
+        The device runtime reimplements the Lean object model on per-block bump arenas.
+        There is no individual free and no tracing collector on device.
+      </p>
+      <p>
+        Rejected on device: host <code>IO</code>, <code>Task</code>, mutexes, and
+        dynamic loading. There are no implicit CPU fallbacks.
+      </p>
+    </section>
+
+    <section>
+      <h2>Launch parameters</h2>
+      <p>
+        Kernel arguments must be explicit scalars, device pointers or slices,
+        <code>Dim3</code>, or address-free POD records (<code>deriving Cuda.POD</code>).
+        Device slices become owning <code>Cuda.Buffer</code> values on the host companions.
+      </p>
+      <pre><code>structure SaxpyParams where
+  a : Float32
+  deriving Cuda.POD
+
+def main : IO Unit := do
+  -- allocate, copyFrom, then:
+  let handle ← saxpy.launch config params xs ys
+  handle.waitChecked "saxpy"</code></pre>
+      <p>
+        Prefer the stream-taking companions <code>kernel.launchOn stream config …</code>.
+        Plain <code>launch</code> uses the legacy default stream. Streams from
+        <code>Cuda.Stream.create</code> are non-blocking and do not order against
+        default-stream work. A copy on a user stream followed by a plain
+        <code>launch</code> is a data race.
+      </p>
+    </section>
+
+    <section>
+      <h2>Persistent workers</h2>
+      <p>
+        <code>@[cuda_persistent]</code> starts resident block workers that consume a
+        bounded, typed host-to-device POD queue. Use this for long-lived host-fed
+        work instead of relaunching a grid for every item. Grid-persistent kernels
+        exist for cooperative whole-grid residency.
+      </p>
+    </section>
+
+    <section>
+      <h2>Build recipe, briefly</h2>
+      <ol>
+        <li>Emit <code>.c</code> and <code>.cu</code> with <code>lean --cuda</code>.</li>
+        <li>Compile the CUDA unit with <code>nvcc</code> for the target architecture.</li>
+        <li>Device-link against a runtime object built for that same architecture.</li>
+        <li>Native-link with <code>leanc</code> and <code>libLeanCuda</code>.</li>
+      </ol>
+      <p>
+        Runnable compact examples live in the companion
+        <code>lean-cuda-examples</code> repository: saxpy, reduce, histogram,
+        async launch, GEMM, a language-feature tour, physical cores, cluster stencil,
+        and host I/O.
+      </p>
+    </section>
+
+    <footer>
+      <p><a href="runtime.html">Concurrency and hardware</a> · <a href="../install.html">Install</a></p>
+    </footer>
+  </main>
+</body>
+</html>

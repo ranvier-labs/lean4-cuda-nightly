@@ -341,6 +341,39 @@ class SiteGenerationTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIsInstance(json.loads(path.read_text(encoding="utf-8")), dict)
 
+    def test_guide_pages_are_copied_and_linked(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "records"
+            static = root / "static"
+            output = root / "output"
+            records.mkdir()
+            shutil.copytree(ROOT / "site", static)
+            self.assertEqual(build_site(records, static, output, ROOT / "schema"), 0)
+            for relative in (
+                "docs/index.html",
+                "docs/kernels.html",
+                "docs/runtime.html",
+                "install.html",
+            ):
+                path = output / relative
+                with self.subTest(relative=relative):
+                    self.assertTrue(path.is_file())
+                    text = path.read_text(encoding="utf-8")
+                    self.assertIn("lean cuda", text)
+            landing = (output / "index.html").read_text(encoding="utf-8")
+            self.assertIn("docs/index.html", landing)
+            self.assertIn("@[cuda_kernel]", landing)
+            llms = (output / "llms.txt").read_text(encoding="utf-8")
+            self.assertIn("docs/index.html", llms)
+            collector = LinkCollector()
+            collector.feed((output / "docs/index.html").read_text(encoding="utf-8"))
+            for link in collector.links:
+                if link.startswith(("https://", "http://", "#")):
+                    continue
+                resolved = (output / "docs" / link).resolve()
+                self.assertTrue(resolved.is_file(), msg=link)
+
 
 if __name__ == "__main__":
     unittest.main()
