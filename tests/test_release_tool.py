@@ -348,7 +348,7 @@ class SiteGenerationTests(unittest.TestCase):
             "about.md": ("Not an upstream Lean release", "@[cuda_kernel]"),
             "docs/index.md": ("LEAN_CUDA=ON", "@[cuda_persistent]"),
             "docs/kernels.md": ("DeviceM", "launchOn"),
-            "docs/runtime.md": ("Cuda.SM", "performance claim"),
+            "docs/runtime.md": ("Cuda.SM", "Cuda.Mailbox"),
             "install.md": ("elan toolchain install", "sha256sum"),
             "agent-install.md": ("fail closed", "checksum"),
         }

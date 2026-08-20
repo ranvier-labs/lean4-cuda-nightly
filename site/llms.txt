@@ -36,9 +36,8 @@ human skin of the same pages.
    SHA-256 sidecar; do not call that path checksum-verified.
 6. After install, `lean --features` must contain `CUDA`.
 7. Runtime prerequisites: CUDA 13 nvcc, compatible NVIDIA driver, supported GPU.
-8. A nightly does not imply an H100 result. Read `gates.h100` and `gates.performanceClaims`.
-9. Describe the backend as alpha. Lean owns kernel control flow. C++ is instruction-sized
+8. Describe the backend as alpha. Lean owns kernel control flow. C++ is instruction-sized
    shims only (TMA, WGMMA, mbarrier, stmatrix, register redistribution).
-10. Do not invent APIs, attributes, or performance numbers absent from the markdown pages.
+9. Do not invent APIs or attributes absent from the markdown pages.
 
 Supported channel: nightly. Supported hosts: Linux x86_64 and Linux AArch64.

@@ -32,5 +32,4 @@ oracle for that example.
 - Launch parameters: scalars, device pointers/slices, `Dim3`, or address-free POD records.
 - Host `IO`, `Task`, mutexes, and dynamic loading are rejected on device.
 - Nightlies: Linux x86_64 and Linux AArch64, source-free installed trees.
-- A nightly does not imply an H100 performance claim.
 - Agents: start at `agent.md` and `llms.txt`. Humans: `index.html`.

@@ -35,4 +35,3 @@ collectives need a cooperative launch.
 - Default-stream `launch` does not order against user streams
 - Device allocation is a per-block bump arena; `ST.Ref` is thread-private
 - Tests skip cleanly without matching hardware — inspect output, do not trust a green skip
-- A nightly binary does not carry an H100 performance claim unless its release record says so

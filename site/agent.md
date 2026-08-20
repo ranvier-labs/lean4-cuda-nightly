@@ -98,10 +98,6 @@ Require `lean --features` to contain `CUDA`. Require CUDA 13 `nvcc`.
 Supported hosts: Linux `x86_64` and Linux `aarch64` only. Both architectures are
 published together or not at all.
 
-A nightly does **not** imply an H100 performance result. Read `gates.h100` and
-`gates.performanceClaims` on the immutable release record. If
-`performanceClaims` is false, do not invent TFLOP/s numbers.
-
 Follow `agent-install.md` to install. Pin a release ID. Never write a floating
 `latest` into a project `lean-toolchain` without user authorization. Current elan
 downloads custom GitHub Release assets over HTTPS but does **not** check this
@@ -111,7 +107,6 @@ channel's SHA-256 sidecar; do not call that path checksum-verified.
 
 - “This is official Lean” / “this is in Lean 4 stable.”
 - “It autograds CUDA kernels.” Discrete-form adjoints are explicit library VJPs, not a tape.
-- “A nightly is as fast as the H100 GEMM paper number.”
 - “Install `ranvier-labs/lean4-cuda-nightly:latest` for reproducibility.”
 - Any API, attribute, or Lake flag not named in these markdown pages.
 
