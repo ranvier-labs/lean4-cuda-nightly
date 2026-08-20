@@ -42,10 +42,3 @@ that mode: CUDA 13 `ptxas` otherwise discards `setmaxnreg` (warning C7504).
 - CUDA 13, `nvcc` on `PATH`
 - An NVIDIA GPU for execution. Development target: GB10 (`sm_121`). Hopper-only
   features compile for `sm_90a` and execute on H100-class hardware.
-
-## What this is not
-
-- Not upstream Lean
-- Not a general autograd transform. Discrete-form adjoints and custom VJPs are
-  explicit library code, not a tape
-- GPU-less test runs can skip execution and still look green — read the test output
