@@ -24,14 +24,23 @@
       <h1>Examples</h1>
       <p class="lede">
         Compact kernels and a few application workloads, all written in Lean.
-        The stills below are device outputs from GB10 runs.
+        Stills are device outputs from GB10 runs.
       </p>
     </header>
+
+    <div class="thumbs">
+      <a href="#mandelbrot"><img src="gallery/mandelbrot.png" alt=""> <span>mandelbrot</span></a>
+      <a href="#cores"><img src="gallery/mandelbrot-cores.png" alt=""> <span>ownership</span></a>
+      <a href="#plume"><img src="gallery/plume.png" alt=""> <span>plume</span></a>
+      <a href="#shock"><img src="gallery/shock.png" alt=""> <span>shock</span></a>
+      <a href="#loss"><img src="gallery/loss.svg" alt=""> <span>training</span></a>
+      <a href="#stealth"><img src="gallery/stealth.svg" alt=""> <span>stealth</span></a>
+    </div>
 
     <section>
       <h2>Simulation results</h2>
 
-      <figure>
+      <figure id="mandelbrot">
         <img src="gallery/mandelbrot.png" alt="Mandelbrot set rendered by SM-as-core workers" width="1024" height="1024">
         <figcaption>
           <code>mandelbrot</code> — one cooperative block per SM, warp workers claiming
@@ -41,13 +50,13 @@
       </figure>
 
       <div class="pair">
-        <figure class="pixel">
+        <figure class="pixel" id="cores">
           <img src="gallery/mandelbrot-cores.png" alt="Per-tile SM ownership map for the Mandelbrot render" width="128" height="128">
           <figcaption>
             Tile ownership. Color is the physical SM that claimed the tile.
           </figcaption>
         </figure>
-        <figure class="pixel">
+        <figure class="pixel" id="plume">
           <img src="gallery/plume.png" alt="Buoyant plume on a regridding-free AMR tree" width="128" height="128">
           <figcaption>
             <code>plume_amr</code> — incompressible buoyant plume. The tree
@@ -56,7 +65,7 @@
         </figure>
       </div>
 
-      <figure class="pixel">
+      <figure class="pixel" id="shock">
         <img src="gallery/shock.png" alt="Circular blast on an adaptive mesh with HLLC Riemann solver" width="256" height="256">
         <figcaption>
           Compressible Euler, Godunov + HLLC, Löhner density-gradient indicator.
@@ -64,7 +73,7 @@
         </figcaption>
       </figure>
 
-      <figure>
+      <figure id="loss">
         <img src="gallery/loss.svg" alt="Cross-entropy loss over 2048 persistent training steps" width="960" height="480">
         <figcaption>
           <code>persistent_training</code> — 2048 SGD steps of a 16-class linear
@@ -72,7 +81,7 @@
         </figcaption>
       </figure>
 
-      <figure>
+      <figure id="stealth">
         <img src="gallery/stealth.svg" alt="Optimized 2D material silhouette and scattering metric" width="1120" height="560">
         <figcaption>
           <code>stealth_shape_optimization</code> — discrete-form Helmholtz inverse
