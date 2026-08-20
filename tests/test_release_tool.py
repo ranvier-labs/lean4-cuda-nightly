@@ -341,6 +341,23 @@ class SiteGenerationTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIsInstance(json.loads(path.read_text(encoding="utf-8")), dict)
 
+    def test_agent_surface_is_markdown(self) -> None:
+        required = {
+            "llms.txt": ("agent.md", "about.md", "docs/index.md", "Prefer markdown"),
+            "agent.md": ("Fail closed", "@[cuda_kernel]", "releases/v1/latest.json"),
+            "about.md": ("Not an upstream Lean release", "@[cuda_kernel]"),
+            "docs/index.md": ("LEAN_CUDA=ON", "@[cuda_persistent]"),
+            "docs/kernels.md": ("DeviceM", "launchOn"),
+            "docs/runtime.md": ("Cuda.SM", "performance claim"),
+            "install.md": ("elan toolchain install", "sha256sum"),
+            "agent-install.md": ("fail closed", "checksum"),
+        }
+        for relative, needles in required.items():
+            text = (ROOT / "site" / relative).read_text(encoding="utf-8")
+            with self.subTest(relative=relative):
+                for needle in needles:
+                    self.assertIn(needle, text)
+
     def test_guide_pages_are_copied_and_linked(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -365,7 +382,8 @@ class SiteGenerationTests(unittest.TestCase):
             self.assertIn("docs/index.html", landing)
             self.assertIn("@[cuda_kernel]", landing)
             llms = (output / "llms.txt").read_text(encoding="utf-8")
-            self.assertIn("docs/index.html", llms)
+            self.assertIn("docs/index.md", llms)
+            self.assertIn("agent.md", llms)
             collector = LinkCollector()
             collector.feed((output / "docs/index.html").read_text(encoding="utf-8"))
             for link in collector.links:

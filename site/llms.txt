@@ -1,43 +1,44 @@
 # Lean CUDA
 
-> Experimental Lean 4 compiler backend that lowers marked declarations to CUDA device code.
-> Binary nightlies are distributed from this repository. The compiler source is private.
-> This is not an upstream Lean release.
+> Experimental Lean 4 compiler backend. Lowers marked declarations to CUDA device code.
+> Nightly binaries are distributed here. Compiler source is private. Not upstream Lean.
+> Alpha. Prefer markdown over HTML.
 
-Human pages:
+## Start here
 
-- Landing: index.html
-- Guide: docs/index.html
-- Kernels and launch ABI: docs/kernels.html
-- Runtime, physical cores, alpha limits: docs/runtime.html
-- Human installation: install.html
-- Agent installation procedure: agent-install.md
+1. `agent.md` — fail-closed briefing (identity, routing, kernel shape, install rules)
+2. `about.md` — short product facts
+3. `docs/index.md` — compile path and attributes
+4. `docs/kernels.md` — DeviceM and launch ABI
+5. `docs/runtime.md` — concurrency, hardware, alpha limits
+6. `agent-install.md` — noninteractive nightly install
+7. `install.md` — human install notes
 
-Authoritative machine-readable interfaces:
+Do not scrape HTML for facts. `index.html` / `docs/*.html` / `install.html` are the
+human skin of the same pages.
 
-- Latest nightly pointer: releases/v1/latest.json
-- Ordered release index: releases/v1/index.json
-- Immutable release record: releases/v1/<release-id>.json
-- Release JSON schema: schema/release-v1.schema.json
-- Release contract source: https://github.com/ranvier-labs/lean4-cuda-nightly/blob/main/docs/RELEASE_CONTRACT.md
+## Nightly automation (JSON)
 
-Rules for agents:
+- Latest pointer: `releases/v1/latest.json` (`release` is null until a nightly exists)
+- Index: `releases/v1/index.json`
+- Immutable record: `releases/v1/<release-id>.json`
+- Schema: `schema/release-v1.schema.json`
+- Contract: https://github.com/ranvier-labs/lean4-cuda-nightly/blob/main/docs/RELEASE_CONTRACT.md
 
-1. Resolve `releases/v1/latest.json` relative to this file. Its `release` field is null until a
-   nightly exists.
-2. Follow `release.metadataUrl` and select the artifact matching `uname -m` exactly:
-   `x86_64` or `aarch64`.
-3. For a verified install, download the immutable archive directly, compare its SHA-256 with the
-   release record, extract it into a new directory, and optionally register that directory with
-   `elan toolchain link`. Never use an expiring GitHub Actions URL.
-4. `installation.elanToolchain` is the convenient remote-install identity. Current elan downloads
-   custom GitHub release assets over HTTPS but does not check this channel's SHA-256 sidecar, so do
-   not describe that path as independently checksum-verified.
-5. Confirm `lean --features` includes `CUDA` after installation.
-6. CUDA 13 nvcc, a compatible NVIDIA driver, and a supported GPU are runtime prerequisites.
-7. A nightly does not imply an H100 performance result. Read `gates.h100` and
-   `gates.performanceClaims` before making hardware-performance claims.
-8. Describe the backend as alpha. Lean owns kernel control flow; C++ is limited to instruction-sized
-   shims (TMA, WGMMA, mbarrier, stmatrix, register redistribution).
+## Rules
+
+1. If `latest.json` has a null `release`, say no public nightly exists and stop.
+2. After resolving `latest`, pin the immutable release `id`. Never keep `latest` as the version.
+3. Map `uname -m` only: `x86_64` → x86_64, `aarch64`/`arm64` → aarch64. Linux only.
+4. Checksum-verified install: download the immutable archive URL, compare SHA-256, extract.
+   Never use expiring GitHub Actions artifact URLs.
+5. `installation.elanToolchain` is convenient. Current elan does not check this channel's
+   SHA-256 sidecar; do not call that path checksum-verified.
+6. After install, `lean --features` must contain `CUDA`.
+7. Runtime prerequisites: CUDA 13 nvcc, compatible NVIDIA driver, supported GPU.
+8. A nightly does not imply an H100 result. Read `gates.h100` and `gates.performanceClaims`.
+9. Describe the backend as alpha. Lean owns kernel control flow. C++ is instruction-sized
+   shims only (TMA, WGMMA, mbarrier, stmatrix, register redistribution).
+10. Do not invent APIs, attributes, or performance numbers absent from the markdown pages.
 
 Supported channel: nightly. Supported hosts: Linux x86_64 and Linux AArch64.

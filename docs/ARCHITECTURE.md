@@ -66,10 +66,13 @@ A nightly is useful for early adopters and agents without weakening the stronger
 HTML is for discovery, not automation. The stable automation surface is:
 
 - `llms.txt` — concise capability and routing map;
-- `agent-install.md` — noninteractive decision procedure;
+- `agent.md` — fail-closed product briefing;
+- `about.md`, `docs/*.md`, `install.md` — markdown sources for the human pages;
+- `agent-install.md` — noninteractive install decision procedure;
 - `releases/v1/latest.json` — nullable pointer to the newest accepted nightly;
 - `releases/v1/index.json` — ordered release summaries;
-- `releases/v1/<release-id>.json` — immutable complete release record.
+- `releases/v1/<release-id>.json` — immutable complete release record;
 - `schema/release-v1.schema.json` — release record structure.
 
 Agents must pin a release ID after resolving `latest` and verify the selected archive's SHA-256.
+They must not scrape HTML for facts.

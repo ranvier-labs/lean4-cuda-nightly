@@ -1,6 +1,7 @@
 # Agent procedure: install a Lean CUDA nightly
 
-Use this procedure noninteractively and fail closed.
+Use this procedure noninteractively and fail closed. Read `agent.md` first for
+identity and API bounds. This file is only the install decision procedure.
 
 ## 1. Resolve
 
