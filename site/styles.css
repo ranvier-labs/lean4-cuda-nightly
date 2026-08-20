@@ -86,6 +86,10 @@ pre {
   line-height: 1.5;
 }
 
+.lean .kw { font-weight: 650; }
+.lean .at { color: #444; }
+.lean .cm { color: #888; }
+
 code { font-size: 0.88em; }
 p code, li code, figcaption code, td code {
   background: transparent;
@@ -140,9 +144,13 @@ footer {
 
 main.wide { width: min(52rem, calc(100% - 2.5rem)); }
 
+.example { margin-top: 2.4rem; }
+.example h2 { margin-top: 0; }
+.example h2 code { font-size: 0.95em; font-weight: 650; }
+
 .thumbs {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.5rem;
   margin: 1rem 0 1.6rem;
 }
