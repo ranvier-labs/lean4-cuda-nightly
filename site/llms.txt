@@ -11,9 +11,8 @@
 3. `docs/index.md` — compile path and attributes
 4. `docs/kernels.md` — DeviceM and launch ABI
 5. `docs/runtime.md` — concurrency, hardware, alpha limits
-6. `gallery.md` — examples and GB10 simulation stills
-7. `agent-install.md` — noninteractive nightly install
-8. `install.md` — human install notes
+6. `agent-install.md` — noninteractive nightly install
+7. `install.md` — human install notes
 
 Do not scrape HTML for facts. `index.html` / `docs/*.html` / `install.html` are the
 human skin of the same pages.

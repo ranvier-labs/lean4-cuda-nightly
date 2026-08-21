@@ -3,8 +3,8 @@
 This repository is the distribution boundary for nightly binary builds of the experimental Lean
 CUDA toolchain. The compiler is built in a separate private repository; this repository contains
 only release metadata, a small product site and compiler guide, installation instructions, and
-the tools that validate those surfaces. The repository remains private while the channel is being
-staged; making downloads anonymous is a separate, explicit launch decision.
+the tools that validate those surfaces. This repository is public so its metadata and future
+GitHub Release assets are anonymously accessible; publishing a nightly remains an explicit step.
 
 No nightly has been published yet.
 

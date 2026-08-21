@@ -4,8 +4,8 @@
 
 The private build repository `ranvier-labs/lean4-cuda-backend` owns the compiler source, CUDA
 backend implementation, build workflow, and release-candidate evidence. This companion repository
-owns only the binary distribution surface. It remains private during staging and can later be made public or mirrored
-to a public host without exposing the compiler repository:
+owns only the binary distribution surface. It can be kept private during staging, then made public
+or mirrored to a public host without exposing the compiler repository:
 
 ```text
 private Lean CUDA repository

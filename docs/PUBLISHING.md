@@ -5,7 +5,8 @@ release assets and one small JSON record. Do not copy the private Git history in
 
 ## One-time setup
 
-1. Keep `ranvier-labs/lean4-cuda-nightly` private while staging the channel.
+1. Keep `ranvier-labs/lean4-cuda-nightly` private until its distribution boundary and history pass
+   the public-release audit.
 2. When the organization plan and desired visibility permit it, enable GitHub Pages with GitHub
    Actions as its source.
 3. Set the repository Actions variable `PUBLISH_PAGES=true`. Until then, push-triggered Pages jobs
