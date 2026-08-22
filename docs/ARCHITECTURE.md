@@ -76,3 +76,15 @@ HTML is for discovery, not automation. The stable automation surface is:
 
 Agents must pin a release ID after resolving `latest` and verify the selected archive's SHA-256.
 They must not scrape HTML for facts.
+
+## API documentation
+
+Pages generates API documentation from the newest accepted release. The workflow verifies the
+x86_64 and AArch64 release manifests, requires identical `.olean` and `.ilean` paths and digests,
+then runs the pinned `cpehle/doc-gen4` fork against the x86_64 toolchain. The resulting declaration
+reference is published under release-scoped x86_64 and AArch64 paths.
+
+Generation covers `Lean.Compiler`, `Lean.Cuda`, `Cuda`, `Lake.Build.Cuda`, and compiler-side CUDA
+modules outside the standard `Lean.Compiler` umbrella. Source links and generated equations are
+disabled. A post-generation audit rejects Lean source files, archives, logs, local paths, private
+repository references, source controls, and non-empty indexed source links.

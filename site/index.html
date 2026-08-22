@@ -15,6 +15,7 @@
       <a class="brand" href="index.html" aria-current="page">lean cuda</a>
       <div class="links">
         <a href="docs/index.html">guide</a>
+        <a href="api/index.html">api</a>
         <a href="install.html">install</a>
         <a href="agent.md">agents</a>
       </div>
@@ -78,6 +79,18 @@ def saxpy (params : SaxpyParams) (xs ys : Cuda.DeviceSlice Float32) :
       <p>Kernel signatures generate typed host interfaces for launch, attributes, and occupancy.</p>
     </section>
 
+    <section aria-labelledby="api-title">
+      <h2 id="api-title">API reference</h2>
+      <p>
+        Generated declarations and docstrings for the Lean compiler, CUDA backend,
+        host runtime, and Lake build integration.
+      </p>
+      <p class="actions">
+        <a href="api/x86_64/index.html">Linux x86_64</a>
+        <a href="api/aarch64/index.html">Linux AArch64</a>
+      </p>
+    </section>
+
     <section aria-labelledby="releases-title">
       <h2 id="releases-title">Release history</h2>
       <div class="release-list">
@@ -90,6 +103,7 @@ def saxpy (params : SaxpyParams) (xs ys : Cuda.DeviceSlice Float32) :
       <p>
         Apache 2.0 ·
         <a href="docs/index.html">Guide</a> ·
+        <a href="api/index.html">API</a> ·
         <a href="agent.md">Agents</a> ·
         <a href="llms.txt">llms.txt</a> ·
         <a href="about.md">Markdown</a> ·

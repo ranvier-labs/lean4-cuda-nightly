@@ -16,6 +16,8 @@ architectures pass and an immutable release record is published.
 - Linux x86_64 and Linux AArch64 toolchains are published together or not at all.
 - Large archives live in GitHub Releases. Git and GitHub Pages carry only JSON, documentation,
   and static assets.
+- Pages publishes release-scoped compiler and CUDA backend API documentation for Linux x86_64
+  and Linux AArch64.
 - The private source commit is disclosed as a provenance identifier, but is not pushed here.
 - Installed private Lean sources are excluded. Public CUDA SDK headers remain in the toolchain
   because downstream `nvcc` compilation requires them.

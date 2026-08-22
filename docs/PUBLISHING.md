@@ -64,8 +64,9 @@ libraries, public headers, licenses, and the normal command-line tools.
    sidecars, and manifests. Keep temporary Actions-artifact retention to one day after handoff.
 8. Generate `releases/<release-id>.json` with `release_tool.py build-record` from those published
    assets, run `make check`, and push it. Pages deployment then updates the release index and
-   latest pointer. The private compiler workflow performs this metadata commit after the GitHub
-   Release exists so agents never observe a `latest` pointer with missing URLs.
+   latest pointer and generates the release-scoped API reference. The private compiler workflow
+   performs this metadata commit after the GitHub Release exists so agents never observe a
+   `latest` pointer with missing URLs.
 
 Publishing the GitHub release before the metadata commit creates a safe short interval in which an
 asset exists but is not advertised. Reversing the order could make agents observe broken URLs.

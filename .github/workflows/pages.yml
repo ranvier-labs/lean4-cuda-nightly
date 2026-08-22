@@ -1,5 +1,9 @@
 name: Publish distribution site
 
+env:
+  DOCGEN_REPOSITORY: cpehle/doc-gen4
+  DOCGEN_COMMIT: 9808750c02cc0ad0ce9d67917250ec029283745e
+
 on:
   push:
     branches: [main]
@@ -21,7 +25,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -29,6 +33,96 @@ jobs:
           python-version: "3.12"
       - name: Test and build
         run: make check
+      - name: Resolve accepted API inputs
+        id: api
+        run: |
+          set -euo pipefail
+          release_id=$(jq -r '.release.id' _site/releases/v1/latest.json)
+          record="releases/${release_id}.json"
+          test -f "$record"
+          x86_name=$(jq -r '.artifacts[] | select(.architecture == "x86_64") | .name' "$record")
+          x86_url=$(jq -r '.artifacts[] | select(.architecture == "x86_64") | .url' "$record")
+          x86_sha256=$(jq -r '.artifacts[] | select(.architecture == "x86_64") | .sha256' "$record")
+          x86_manifest_name=$(jq -r '.artifacts[] | select(.architecture == "x86_64") | .manifest.name' "$record")
+          x86_manifest_url=$(jq -r '.artifacts[] | select(.architecture == "x86_64") | .manifest.url' "$record")
+          x86_manifest_sha256=$(jq -r '.artifacts[] | select(.architecture == "x86_64") | .manifest.sha256' "$record")
+          aarch64_manifest_name=$(jq -r '.artifacts[] | select(.architecture == "aarch64") | .manifest.name' "$record")
+          aarch64_manifest_url=$(jq -r '.artifacts[] | select(.architecture == "aarch64") | .manifest.url' "$record")
+          aarch64_manifest_sha256=$(jq -r '.artifacts[] | select(.architecture == "aarch64") | .manifest.sha256' "$record")
+          {
+            echo "release_id=$release_id"
+            echo "record=$record"
+            echo "x86_name=$x86_name"
+            echo "x86_url=$x86_url"
+            echo "x86_sha256=$x86_sha256"
+            echo "x86_manifest_name=$x86_manifest_name"
+            echo "x86_manifest_url=$x86_manifest_url"
+            echo "x86_manifest_sha256=$x86_manifest_sha256"
+            echo "aarch64_manifest_name=$aarch64_manifest_name"
+            echo "aarch64_manifest_url=$aarch64_manifest_url"
+            echo "aarch64_manifest_sha256=$aarch64_manifest_sha256"
+          } >> "$GITHUB_OUTPUT"
+      - name: Restore generated API reference
+        id: api-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/lean-cuda-api-docs
+          key: api-docs-${{ steps.api.outputs.release_id }}-${{ env.DOCGEN_COMMIT }}-${{ hashFiles('scripts/api_docs.py') }}
+      - name: Checkout pinned doc-gen4 fork
+        if: steps.api-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.DOCGEN_REPOSITORY }}
+          ref: ${{ env.DOCGEN_COMMIT }}
+          path: .docgen
+          persist-credentials: false
+      - name: Download and verify API inputs
+        if: steps.api-cache.outputs.cache-hit != 'true'
+        env:
+          X86_NAME: ${{ steps.api.outputs.x86_name }}
+          X86_URL: ${{ steps.api.outputs.x86_url }}
+          X86_SHA256: ${{ steps.api.outputs.x86_sha256 }}
+          X86_MANIFEST_NAME: ${{ steps.api.outputs.x86_manifest_name }}
+          X86_MANIFEST_URL: ${{ steps.api.outputs.x86_manifest_url }}
+          X86_MANIFEST_SHA256: ${{ steps.api.outputs.x86_manifest_sha256 }}
+          AARCH64_MANIFEST_NAME: ${{ steps.api.outputs.aarch64_manifest_name }}
+          AARCH64_MANIFEST_URL: ${{ steps.api.outputs.aarch64_manifest_url }}
+          AARCH64_MANIFEST_SHA256: ${{ steps.api.outputs.aarch64_manifest_sha256 }}
+        run: |
+          set -euo pipefail
+          input_dir="$RUNNER_TEMP/lean-cuda-api-inputs"
+          toolchain_dir="$RUNNER_TEMP/lean-cuda-toolchain"
+          mkdir -p "$input_dir" "$toolchain_dir"
+          curl --fail --location --silent --show-error "$X86_URL" --output "$input_dir/$X86_NAME"
+          curl --fail --location --silent --show-error "$X86_MANIFEST_URL" --output "$input_dir/$X86_MANIFEST_NAME"
+          curl --fail --location --silent --show-error "$AARCH64_MANIFEST_URL" --output "$input_dir/$AARCH64_MANIFEST_NAME"
+          echo "$X86_SHA256  $input_dir/$X86_NAME" | sha256sum -c -
+          echo "$X86_MANIFEST_SHA256  $input_dir/$X86_MANIFEST_NAME" | sha256sum -c -
+          echo "$AARCH64_MANIFEST_SHA256  $input_dir/$AARCH64_MANIFEST_NAME" | sha256sum -c -
+          tar --zstd -xf "$input_dir/$X86_NAME" -C "$toolchain_dir"
+      - name: Generate compiler and backend API reference
+        if: steps.api-cache.outputs.cache-hit != 'true'
+        env:
+          RECORD: ${{ steps.api.outputs.record }}
+          X86_NAME: ${{ steps.api.outputs.x86_name }}
+          X86_MANIFEST_NAME: ${{ steps.api.outputs.x86_manifest_name }}
+          AARCH64_MANIFEST_NAME: ${{ steps.api.outputs.aarch64_manifest_name }}
+        run: |
+          set -euo pipefail
+          toolchain_name=${X86_NAME%.tar.zst}
+          python3 scripts/api_docs.py build \
+            --record "$RECORD" \
+            --x86-manifest "$RUNNER_TEMP/lean-cuda-api-inputs/$X86_MANIFEST_NAME" \
+            --aarch64-manifest "$RUNNER_TEMP/lean-cuda-api-inputs/$AARCH64_MANIFEST_NAME" \
+            --toolchain "$RUNNER_TEMP/lean-cuda-toolchain/$toolchain_name" \
+            --docgen .docgen \
+            --build-dir "$RUNNER_TEMP/lean-cuda-api-docs" \
+            --docgen-commit "$DOCGEN_COMMIT"
+      - name: Add API reference to Pages
+        run: |
+          python3 scripts/api_docs.py publish \
+            --build-dir "$RUNNER_TEMP/lean-cuda-api-docs" \
+            --site-dir _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
