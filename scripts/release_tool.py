@@ -518,6 +518,18 @@ def release_summary(record: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def release_download_links(record: dict[str, Any]) -> list[str]:
+    artifacts = {artifact["architecture"]: artifact for artifact in record["artifacts"]}
+    links = []
+    for architecture, label in (
+        ("x86_64", "Linux x86_64"),
+        ("aarch64", "Linux AArch64"),
+    ):
+        url = html.escape(artifacts[architecture]["url"], quote=True)
+        links.append(f'<a href="{url}">{label}</a>')
+    return links
+
+
 def ensure_safe_output(output: Path, records_dir: Path, static_dir: Path) -> None:
     output = output.resolve()
     protected = {Path("/").resolve(), Path.home().resolve(), Path.cwd().resolve()}
@@ -603,22 +615,28 @@ def build_site(
         )
     if records:
         newest = records[0]
+        newest_downloads = " · ".join(release_download_links(newest))
         accepted_line = (
             '<span class="status-state status-accepted">accepted</span> '
             f"<strong>{html.escape(newest['id'])}</strong> — "
             f"{html.escape(newest['version'])}. "
+            f"Downloads: {newest_downloads}. "
             f"<a href=\"releases/v1/{html.escape(newest['id'])}.json\">Immutable metadata</a>"
         )
         latest_status = f"{status_line}<br>{accepted_line}" if status_line else accepted_line
         rows = []
         for record in records:
+            downloads = "".join(release_download_links(record))
             rows.append(
                 "<article class=\"release-row\">"
                 "<div>"
                 f"<h3>{html.escape(record['id'])}</h3>"
                 f"<p><code>{html.escape(record['version'])}</code></p>"
                 "</div>"
+                "<div class=\"release-links\">"
+                f"{downloads}"
                 f"<a href=\"releases/v1/{html.escape(record['id'])}.json\">metadata</a>"
+                "</div>"
                 "</article>"
             )
         release_rows = "\n".join(rows)

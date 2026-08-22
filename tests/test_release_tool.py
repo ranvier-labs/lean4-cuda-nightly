@@ -413,6 +413,15 @@ class SiteGenerationTests(unittest.TestCase):
             self.assertTrue(
                 (output / "releases" / "v1" / "nightly-2026-08-12.json").is_file()
             )
+            record = json.loads(FIXTURE.read_text(encoding="utf-8"))
+            landing = (output / "index.html").read_text(encoding="utf-8")
+            collector = LinkCollector()
+            collector.feed(landing)
+            for artifact in record["artifacts"]:
+                with self.subTest(architecture=artifact["architecture"]):
+                    self.assertIn(artifact["url"], collector.links)
+            self.assertIn("Linux x86_64", landing)
+            self.assertIn("Linux AArch64", landing)
 
     def test_schema_files_are_json(self) -> None:
         for path in sorted((ROOT / "schema").glob("*.json")):

@@ -144,6 +144,11 @@ li + li { margin-top: 0.25rem; }
 }
 .release-row h3 { margin: 0; font-size: 1rem; font-weight: 500; }
 .release-row code { color: var(--muted); }
+.release-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.8rem;
+}
 
 .doc-nav {
   display: flex;
