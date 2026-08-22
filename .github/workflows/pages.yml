@@ -76,6 +76,11 @@ jobs:
           ref: ${{ env.DOCGEN_COMMIT }}
           path: .docgen
           persist-credentials: false
+      - name: Install API build dependencies
+        if: steps.api-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libuv1-dev
       - name: Download and verify API inputs
         if: steps.api-cache.outputs.cache-hit != 'true'
         env:
