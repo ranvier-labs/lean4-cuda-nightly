@@ -229,6 +229,9 @@ def build_docs(
     build_dir: Path,
     docgen_commit: str,
 ) -> dict[str, Any]:
+    toolchain = toolchain.resolve()
+    docgen = docgen.resolve()
+    build_dir = build_dir.resolve()
     record = read_json(record_path)
     if not isinstance(record, dict):
         fail(f"{record_path}: release record must be an object")
