@@ -13,6 +13,7 @@ from scripts.release_tool import (
     ContractError,
     build_manifest,
     build_record,
+    build_status,
     build_site,
     load_release_records,
     validate_manifest,
@@ -88,6 +89,19 @@ class ReleaseValidationTests(unittest.TestCase):
 
     def test_cuda_upstream_is_the_private_ranvier_repository(self) -> None:
         self.assertEqual(CUDA_UPSTREAM_REPOSITORY, "ranvier-labs/lean4-cuda-backend")
+
+
+class BuildStatusTests(unittest.TestCase):
+    def test_builder_validates_and_normalizes_status(self) -> None:
+        status = build_status(
+            state="running",
+            release_id="nightly-2026-08-22",
+            started_at="2026-08-22T07:23:32Z",
+            updated_at="2026-08-22T07:23:32Z",
+            message="Dual-architecture validation is running.",
+        )
+        self.assertEqual(status["schema"], "lean.cuda.build-status/v1")
+        self.assertEqual(status["state"], "running")
 
 
 class ManifestPolicyTests(unittest.TestCase):
@@ -422,6 +436,37 @@ class SiteGenerationTests(unittest.TestCase):
                     self.assertIn(artifact["url"], collector.links)
             self.assertIn("Linux x86_64", landing)
             self.assertIn("Linux AArch64", landing)
+            self.assertIn(
+                "elan toolchain install ranvier-labs/lean4-cuda-nightly:nightly-2026-08-12",
+                landing,
+            )
+            self.assertIn("Compatibility:</strong> Linux x86_64 or AArch64", landing)
+            self.assertIn("Kernel and launch", landing)
+            self.assertNotIn("registered tests", landing)
+
+    def test_release_history_is_bounded(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "records"
+            static = root / "static"
+            output = root / "output"
+            records.mkdir()
+            shutil.copytree(ROOT / "site", static)
+            base_text = FIXTURE.read_text(encoding="utf-8")
+            for day in range(12, 16):
+                release_id = f"nightly-2026-08-{day:02d}"
+                version = f"4.33.0-cuda-nightly.202608{day:02d}.g0123456"
+                record = json.loads(
+                    base_text.replace("nightly-2026-08-12", release_id)
+                    .replace("4.33.0-cuda-nightly.20260812.g0123456", version)
+                )
+                record["publishedAt"] = f"2026-08-{day:02d}T10:00:00Z"
+                write_json(records / f"{release_id}.json", record)
+            self.assertEqual(build_site(records, static, output, ROOT / "schema"), 4)
+            landing = (output / "index.html").read_text(encoding="utf-8")
+            self.assertEqual(landing.count('class="release-row"'), 3)
+            self.assertIn("nightly-2026-08-15", landing)
+            self.assertNotIn("nightly-2026-08-12", landing)
 
     def test_schema_files_are_json(self) -> None:
         for path in sorted((ROOT / "schema").glob("*.json")):

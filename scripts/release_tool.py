@@ -22,6 +22,7 @@ INDEX_SCHEMA = "lean.cuda.release-index/v1"
 LATEST_SCHEMA = "lean.cuda.latest/v1"
 BUILD_STATUS_SCHEMA = "lean.cuda.build-status/v1"
 DISTRIBUTION_REPOSITORY = "ranvier-labs/lean4-cuda-nightly"
+MAX_RELEASE_ROWS = 3
 
 ID_RE = re.compile(
     r"^nightly-(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})"
@@ -184,6 +185,26 @@ def validate_build_status(value: Any, origin: str = "build status") -> dict[str,
     )
     require_string(status["message"], f"{origin}.message")
     return status
+
+def build_status(
+    *,
+    state: str,
+    release_id: str,
+    started_at: str,
+    updated_at: str,
+    message: str,
+) -> dict[str, Any]:
+    return validate_build_status(
+        {
+            "schema": BUILD_STATUS_SCHEMA,
+            "channel": "nightly",
+            "state": state,
+            "releaseId": release_id,
+            "startedAt": started_at,
+            "updatedAt": updated_at,
+            "message": message,
+        }
+    )
 
 
 
@@ -604,7 +625,11 @@ def build_site(
         raise ContractError(f"{index_path}: cannot read site template: {error}") from error
     require(template.count("{{LATEST_STATUS}}") == 1, str(index_path), "must contain one {{LATEST_STATUS}} marker")
     require(template.count("{{RELEASE_ROWS}}") == 1, str(index_path), "must contain one {{RELEASE_ROWS}} marker")
+    require(template.count("{{LATEST_INSTALL}}") == 1, str(index_path), "must contain one {{LATEST_INSTALL}} marker")
+    require(template.count("{{LATEST_COMPATIBILITY}}") == 1, str(index_path), "must contain one {{LATEST_COMPATIBILITY}} marker")
     status_line = None
+    latest_install = ""
+    latest_compatibility = ""
     if build_status is not None and build_status["state"] != "accepted":
         state = html.escape(build_status["state"])
         status_line = (
@@ -615,6 +640,18 @@ def build_site(
         )
     if records:
         newest = records[0]
+        version_match = VERSION_RE.fullmatch(newest["version"])
+        assert version_match is not None
+        toolchain = html.escape(newest["installation"]["elanToolchain"])
+        latest_install = (
+            '<pre class="install-command"><code>'
+            f"elan toolchain install {toolchain}"
+            "</code></pre>"
+        )
+        latest_compatibility = (
+            f"<strong>Compatibility:</strong> Linux x86_64 or AArch64 · "
+            f"Lean {html.escape(version_match.group('base'))} · CUDA 13"
+        )
         newest_downloads = " · ".join(release_download_links(newest))
         accepted_line = (
             '<span class="status-state status-accepted">accepted</span> '
@@ -625,7 +662,7 @@ def build_site(
         )
         latest_status = f"{status_line}<br>{accepted_line}" if status_line else accepted_line
         rows = []
-        for record in records:
+        for record in records[:MAX_RELEASE_ROWS]:
             downloads = "".join(release_download_links(record))
             rows.append(
                 "<article class=\"release-row\">"
@@ -645,7 +682,12 @@ def build_site(
             "<strong>No public nightly yet.</strong> The channel contract and publishing path are ready."
         )
         release_rows = '<article class="release-row"><p>No release records have been published.</p></article>'
-    rendered = template.replace("{{LATEST_STATUS}}", latest_status).replace("{{RELEASE_ROWS}}", release_rows)
+    rendered = (
+        template.replace("{{LATEST_STATUS}}", latest_status)
+        .replace("{{LATEST_INSTALL}}", latest_install)
+        .replace("{{LATEST_COMPATIBILITY}}", latest_compatibility)
+        .replace("{{RELEASE_ROWS}}", release_rows)
+    )
     index_path.write_text(rendered, encoding="utf-8")
     return len(records)
 
@@ -840,6 +882,24 @@ def command_build_manifest(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def command_build_status(arguments: argparse.Namespace) -> int:
+    status = build_status(
+        state=arguments.state,
+        release_id=arguments.release_id,
+        started_at=arguments.started_at,
+        updated_at=arguments.updated_at,
+        message=arguments.message,
+    )
+    write_json(arguments.output, status)
+    print(
+        json.dumps(
+            {"file": str(arguments.output), "releaseId": status["releaseId"], "state": status["state"]},
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def command_build_site(arguments: argparse.Namespace) -> int:
     count = build_site(
         arguments.records_dir,
@@ -911,6 +971,18 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     build_manifest_parser.set_defaults(handler=command_build_manifest)
 
     site_parser = subparsers.add_parser("build-site", help="validate records and build the static site")
+    status_parser = subparsers.add_parser(
+        "build-status",
+        help="write a validated nightly build status record",
+    )
+    status_parser.add_argument("--state", choices=("running", "accepted", "failed"), required=True)
+    status_parser.add_argument("--release-id", required=True)
+    status_parser.add_argument("--started-at", required=True)
+    status_parser.add_argument("--updated-at", required=True)
+    status_parser.add_argument("--message", required=True)
+    status_parser.add_argument("--output", type=Path, required=True)
+    status_parser.set_defaults(handler=command_build_status)
+
     site_parser.add_argument("--records-dir", type=Path, required=True)
     site_parser.add_argument("--static-dir", type=Path, required=True)
     site_parser.add_argument("--schema-dir", type=Path)

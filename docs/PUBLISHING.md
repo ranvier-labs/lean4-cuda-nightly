@@ -120,6 +120,11 @@ The workflow uploads standard Lean archives plus SHA-256 sidecars and determinis
 commits the verified `releases/<release-id>.json` record. A release is not advertised as `latest`
 until that metadata commit lands; the final step preserves the release-before-pointer ordering.
 
+Before the architecture jobs start, the workflow commits a validated `running` status for the
+selected release ID. Successful publication commits the immutable release record and matching
+`accepted` status together. A build or publication failure records `failed` only when no immutable
+record exists for that release ID.
+
 The private compiler repository is `ranvier-labs/lean4-cuda-backend`. Scheduled CI there publishes
 CUDA nightlies to this companion repository; it does not publish official `leanprover/lean4`
 nightlies.

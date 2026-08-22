@@ -100,7 +100,7 @@ p code, li code {
 ul, ol { padding-left: 1.25rem; }
 li + li { margin-top: 0.25rem; }
 
-.muted, .grid p, .release-row p, footer { color: var(--muted); }
+.muted, .release-row p, footer { color: var(--muted); }
 
 .status-card, article, .release-row {
   border: 0;
@@ -133,8 +133,20 @@ li + li { margin-top: 0.25rem; }
 .status-accepted::before { background: #237a3b; }
 .status-failed::before { background: #b42318; }
 
-.grid { display: grid; gap: 0.4rem; }
-.grid article h3 { margin: 0.8rem 0 0.15rem; }
+.install-command { margin: 0.7rem 0 0.3rem; }
+.release-facts {
+  color: var(--muted);
+  margin: 0.3rem 0 0;
+}
+.release-facts strong { color: var(--text); }
+.compiler-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+.compiler-path span { color: var(--muted); }
+
 .release-list { display: grid; gap: 0.25rem; }
 .release-row {
   display: flex;

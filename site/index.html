@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Lean CUDA compiles ordinary Lean 4 declarations to CUDA device code.">
+  <meta name="description" content="Lean CUDA compiles marked Lean 4 declarations to CUDA device code.">
   <title>Lean CUDA</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="alternate" type="text/markdown" href="about.md" title="Markdown">
@@ -33,8 +33,17 @@
       </p>
     </header>
 
+    <section aria-labelledby="status-title" id="nightlies">
+      <h2 id="status-title">Current nightly</h2>
+      <div class="status-card">{{LATEST_STATUS}}</div>
+      {{LATEST_INSTALL}}
+      <p class="release-facts">
+        {{LATEST_COMPATIBILITY}}
+      </p>
+    </section>
+
     <section aria-labelledby="kernel-title">
-      <h2 id="kernel-title">A kernel is a Lean definition</h2>
+      <h2 id="kernel-title">Kernel and launch</h2>
       <p>
         Mark a <code>Cuda.DeviceM</code> function with <code>@[cuda_kernel]</code>.
         The compiler emits a CUDA translation unit and typed host companions:
@@ -48,41 +57,25 @@ def saxpy (params : SaxpyParams) (xs ys : Cuda.DeviceSlice Float32) :
     let x ← Cuda.loadFloat32 xs.ptr i.toUSize
     let y ← Cuda.loadFloat32 ys.ptr i.toUSize
     Cuda.storeFloat32 ys.ptr i.toUSize (params.a * x + y)</code></pre>
+      <pre><code>def main : IO Unit := do
+  -- allocate buffers and copy input, then:
+  let handle ← saxpy.launch config params xs ys
+  handle.waitChecked "saxpy"</code></pre>
       <p class="muted">
-        That is the SAXPY example from the companion example repository, verified
-        bit-for-bit against host <code>Float32</code> arithmetic.
+        See the <a href="docs/kernels.html">kernel and launch guide</a> for buffer setup,
+        streams, and generated host companions.
       </p>
     </section>
 
-    <section aria-labelledby="principles-title">
-      <h2 id="principles-title">Architecture</h2>
-      <div class="grid">
-        <article>
-          <h3>Lean kernel definitions</h3>
-          <p>LCNF lowers marked <code>Cuda.DeviceM</code> declarations to CUDA C++ kernels.</p>
-        </article>
-        <article>
-          <h3>Typed launch ABI</h3>
-          <p>Kernel parameters are scalars, device pointers, <code>Dim3</code>, or address-free POD records.</p>
-        </article>
-        <article>
-          <h3>Instruction shims</h3>
-          <p>Force-inlined shims expose TMA, WGMMA, <code>mbarrier</code>, <code>stmatrix</code>, and register redistribution.</p>
-        </article>
-        <article>
-          <h3>Experimental interface</h3>
-          <p>Attributes, the launch ABI, and Lake integration remain alpha and may change.</p>
-        </article>
-      </div>
-    </section>
-
-    <section aria-labelledby="status-title" id="nightlies">
-      <h2 id="status-title">Nightly channel</h2>
-      <div class="status-card">{{LATEST_STATUS}}</div>
-      <p class="muted">
-        Linux x86_64 and AArch64 builds from one private source commit, distributed
-        as compiled Lean modules with public CUDA SDK headers.
+    <section aria-labelledby="compiler-path-title">
+      <h2 id="compiler-path-title">Compiler path</h2>
+      <p class="compiler-path">
+        <code>Lean</code><span aria-hidden="true">→</span><code>LCNF</code>
+        <span aria-hidden="true">→</span><code>CUDA C++</code>
+        <span aria-hidden="true">→</span><code>nvcc</code>
+        <span aria-hidden="true">→</span><code>device object</code>
       </p>
+      <p>Kernel signatures generate typed host interfaces for launch, attributes, and occupancy.</p>
     </section>
 
     <section aria-labelledby="releases-title">
@@ -90,6 +83,7 @@ def saxpy (params : SaxpyParams) (xs ys : Cuda.DeviceSlice Float32) :
       <div class="release-list">
         {{RELEASE_ROWS}}
       </div>
+      <p><a href="https://github.com/ranvier-labs/lean4-cuda-nightly/releases">All GitHub releases</a></p>
     </section>
 
     <footer>
