@@ -199,6 +199,8 @@ def run_checked(arguments: list[str], *, cwd: Path, env: dict[str, str]) -> str:
         stderr=None,
     )
     if completed.returncode != 0:
+        if completed.stdout:
+            print(completed.stdout, file=sys.stderr, end="")
         fail(f"command failed with exit code {completed.returncode}: {' '.join(arguments)}")
     return completed.stdout
 
