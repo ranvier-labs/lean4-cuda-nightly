@@ -23,9 +23,9 @@
     <header class="hero">
       <h1>Lean CUDA</h1>
       <p class="lede">
-        Compiles ordinary Lean declarations to CUDA. Control flow, tiling,
-        synchronization, and ownership stay in Lean. C++ is only instruction-sized
-        shims that CUDA C++ cannot write directly.
+        An experimental Lean 4 compiler backend for CUDA device code. Marked Lean
+        declarations lower through LCNF to CUDA C++, with typed host interfaces for
+        launch, attributes, and occupancy.
       </p>
       <p class="actions">
         <a href="docs/index.html">guide</a>
@@ -55,23 +55,23 @@ def saxpy (params : SaxpyParams) (xs ys : Cuda.DeviceSlice Float32) :
     </section>
 
     <section aria-labelledby="principles-title">
-      <h2 id="principles-title">What this is</h2>
+      <h2 id="principles-title">Architecture</h2>
       <div class="grid">
         <article>
-          <h3>Lean owns the kernel</h3>
-          <p>Not a C++ kernel called from Lean. The LCNF pipeline lowers the marked declaration to CUDA C++.</p>
+          <h3>Lean kernel definitions</h3>
+          <p>LCNF lowers marked <code>Cuda.DeviceM</code> declarations to CUDA C++ kernels.</p>
         </article>
         <article>
-          <h3>A narrow launch ABI</h3>
-          <p>Parameters are scalars, device pointers, <code>Dim3</code>, or address-free POD records. Host <code>IO</code> and tasks are rejected on device.</p>
+          <h3>Typed launch ABI</h3>
+          <p>Kernel parameters are scalars, device pointers, <code>Dim3</code>, or address-free POD records.</p>
         </article>
         <article>
-          <h3>Shims, not a DSL dump</h3>
-          <p>TMA, WGMMA, <code>mbarrier</code>, <code>stmatrix</code>, and register redistribution are force-inlined instruction shims.</p>
+          <h3>Instruction shims</h3>
+          <p>Force-inlined shims expose TMA, WGMMA, <code>mbarrier</code>, <code>stmatrix</code>, and register redistribution.</p>
         </article>
         <article>
-          <h3>Alpha, not upstream</h3>
-          <p>The attributes, launch ABI, and Lake recipe will change. This is not an official Lean release.</p>
+          <h3>Experimental interface</h3>
+          <p>Attributes, the launch ABI, and Lake integration remain alpha and may change.</p>
         </article>
       </div>
     </section>
@@ -80,8 +80,8 @@ def saxpy (params : SaxpyParams) (xs ys : Cuda.DeviceSlice Float32) :
       <h2 id="status-title">Nightly channel</h2>
       <div class="status-card">{{LATEST_STATUS}}</div>
       <p class="muted">
-        Linux x86_64 and AArch64 from one private source commit. Private compiler
-        <code>.lean</code> sources are omitted; public CUDA SDK headers remain.
+        Linux x86_64 and AArch64 builds from one private source commit, distributed
+        as compiled Lean modules with public CUDA SDK headers.
       </p>
     </section>
 
