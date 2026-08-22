@@ -6,7 +6,8 @@ only release metadata, a small product site and compiler guide, installation ins
 the tools that validate those surfaces. This repository is public so its metadata and future
 GitHub Release assets are anonymously accessible; publishing a nightly remains an explicit step.
 
-No nightly has been published yet.
+The site may report a candidate build in progress. Downloads appear only after both required
+architectures pass and an immutable release record is published.
 
 ## Distribution model
 
@@ -41,6 +42,7 @@ site, and runs the unit tests. The generated `_site/` directory is intentionally
 ## Repository layout
 
 - `releases/` — one immutable JSON record per published nightly;
+- `status/` — the mutable, informational state of the current build candidate;
 - `schema/` — the public JSON contract;
 - `site/` — static website and agent-readable instructions;
 - `scripts/release_tool.py` — semantic validator, source-policy gate, and site builder;

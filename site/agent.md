@@ -34,11 +34,13 @@ because consumer `nvcc` still needs them.
 | Concurrency, SM/cluster, alpha limits | `docs/runtime.md` |
 | Human install notes | `install.md` |
 | Noninteractive install | `agent-install.md` |
+| Build progress | `status/v1/nightly.json` |
 | Nightly pointer | `releases/v1/latest.json` |
 | Release contract | `schema/release-v1.schema.json` |
 
-If `releases/v1/latest.json` has `"release": null`, no public nightly exists. Report that
-and stop. Do not tell the user to install `latest`.
+Build progress is informational and may describe an unaccepted candidate. If
+`releases/v1/latest.json` has `"release": null`, no public nightly exists. Report that and stop.
+Do not tell the user to install the candidate or `latest`.
 
 ## How to describe a kernel
 

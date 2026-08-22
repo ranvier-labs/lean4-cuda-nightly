@@ -25,6 +25,21 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "nightly-2026-08-12.json"
 
 
+def candidate_status(
+    release_id: str = "nightly-2026-08-21",
+    state: str = "running",
+) -> dict[str, str]:
+    return {
+        "schema": "lean.cuda.build-status/v1",
+        "channel": "nightly",
+        "state": state,
+        "releaseId": release_id,
+        "startedAt": "2026-08-22T00:14:28Z",
+        "updatedAt": "2026-08-22T00:14:28Z",
+        "message": "Validation <still> running.",
+    }
+
+
 class LinkCollector(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -315,6 +330,69 @@ class SiteGenerationTests(unittest.TestCase):
                     continue
                 with self.subTest(link=link):
                     self.assertTrue((output / link).is_file())
+
+    def test_running_candidate_is_visible_but_not_latest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "records"
+            static = root / "static"
+            output = root / "output"
+            status = root / "status.json"
+            records.mkdir()
+            shutil.copytree(ROOT / "site", static)
+            write_json(status, candidate_status())
+            self.assertEqual(
+                build_site(records, static, output, ROOT / "schema", status),
+                0,
+            )
+            public_status = json.loads(
+                (output / "status" / "v1" / "nightly.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(public_status["state"], "running")
+            latest = json.loads(
+                (output / "releases" / "v1" / "latest.json").read_text(encoding="utf-8")
+            )
+            self.assertIsNone(latest["release"])
+            landing = (output / "index.html").read_text(encoding="utf-8")
+            self.assertIn("status-running", landing)
+            self.assertIn("Validation &lt;still&gt; running.", landing)
+            self.assertNotIn("Validation <still> running.", landing)
+
+    def test_accepted_status_requires_immutable_record(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "records"
+            static = root / "static"
+            output = root / "output"
+            status = root / "status.json"
+            records.mkdir()
+            shutil.copytree(ROOT / "site", static)
+            write_json(status, candidate_status(state="accepted"))
+            with self.assertRaisesRegex(ContractError, "immutable release record"):
+                build_site(records, static, output, ROOT / "schema", status)
+
+    def test_matching_record_promotes_running_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "records"
+            static = root / "static"
+            output = root / "output"
+            status = root / "status.json"
+            records.mkdir()
+            shutil.copy(FIXTURE, records / FIXTURE.name)
+            shutil.copytree(ROOT / "site", static)
+            write_json(status, candidate_status("nightly-2026-08-12"))
+            self.assertEqual(
+                build_site(records, static, output, ROOT / "schema", status),
+                1,
+            )
+            public_status = json.loads(
+                (output / "status" / "v1" / "nightly.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(public_status["state"], "accepted")
+            landing = (output / "index.html").read_text(encoding="utf-8")
+            self.assertIn("status-accepted", landing)
+            self.assertNotIn("status-running", landing)
 
     def test_release_record_becomes_latest(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

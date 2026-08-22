@@ -19,6 +19,7 @@ site:
 	python3 scripts/release_tool.py build-site \
 		--records-dir releases \
 		--static-dir site \
+		--status status/nightly.json \
 		--schema-dir schema \
 		--output-dir _site
 

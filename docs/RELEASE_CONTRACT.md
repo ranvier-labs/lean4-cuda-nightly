@@ -47,6 +47,7 @@ installed tree so it cannot accidentally include itself.
 
 ## Mutability
 
-Release records and assets are immutable. The generated `latest.json` pointer is the only mutable
-conceptual surface, and it is rebuilt from the newest accepted immutable record. A corrected build
-receives `-revN`; no file is silently replaced.
+Release records and assets are immutable. The generated `latest.json` pointer is rebuilt from the
+newest accepted immutable record. The separate `status/v1/nightly.json` surface is mutable and
+informational: `running` or `failed` never makes a candidate installable. Only a matching immutable
+release record grants acceptance. A corrected build receives `-revN`; no file is silently replaced.

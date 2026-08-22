@@ -20,6 +20,7 @@ RELEASE_SCHEMA = "lean.cuda.release/v1"
 MANIFEST_SCHEMA = "lean.cuda.release-manifest/v1"
 INDEX_SCHEMA = "lean.cuda.release-index/v1"
 LATEST_SCHEMA = "lean.cuda.latest/v1"
+BUILD_STATUS_SCHEMA = "lean.cuda.build-status/v1"
 DISTRIBUTION_REPOSITORY = "ranvier-labs/lean4-cuda-nightly"
 
 ID_RE = re.compile(
@@ -131,6 +132,59 @@ def read_json(path: Path) -> Any:
 def write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def validate_build_status(value: Any, origin: str = "build status") -> dict[str, Any]:
+    status = require_object(value, origin)
+    require_exact_keys(
+        status,
+        origin,
+        required={
+            "schema",
+            "channel",
+            "state",
+            "releaseId",
+            "startedAt",
+            "updatedAt",
+            "message",
+        },
+    )
+    require(
+        status["schema"] == BUILD_STATUS_SCHEMA,
+        f"{origin}.schema",
+        f"must be {BUILD_STATUS_SCHEMA!r}",
+    )
+    require(status["channel"] == "nightly", f"{origin}.channel", "must be 'nightly'")
+    state = require_string(status["state"], f"{origin}.state")
+    require(
+        state in {"running", "accepted", "failed"},
+        f"{origin}.state",
+        "must be 'running', 'accepted', or 'failed'",
+    )
+    release_id = require_string(status["releaseId"], f"{origin}.releaseId")
+    match = ID_RE.fullmatch(release_id)
+    require(match is not None, f"{origin}.releaseId", "must be a nightly release id")
+    assert match is not None
+    try:
+        date.fromisoformat(match.group("date"))
+    except ValueError as error:
+        fail(f"{origin}.releaseId", f"contains an invalid calendar date: {error}")
+    parsed_times: dict[str, datetime] = {}
+    for field in ("startedAt", "updatedAt"):
+        timestamp = require_string(status[field], f"{origin}.{field}")
+        require(timestamp.endswith("Z"), f"{origin}.{field}", "must be expressed in UTC with Z")
+        try:
+            parsed_times[field] = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        except ValueError as error:
+            fail(f"{origin}.{field}", f"invalid RFC 3339 timestamp: {error}")
+    require(
+        parsed_times["updatedAt"] >= parsed_times["startedAt"],
+        f"{origin}.updatedAt",
+        "cannot precede startedAt",
+    )
+    require_string(status["message"], f"{origin}.message")
+    return status
+
 
 
 def validate_release(value: Any, origin: str = "release") -> dict[str, Any]:
@@ -479,8 +533,13 @@ def build_site(
     static_dir: Path,
     output_dir: Path,
     schema_dir: Path | None = None,
+    status_path: Path | None = None,
 ) -> int:
     records = load_release_records(records_dir)
+    build_status = None
+    if status_path is not None:
+        require(status_path.is_file(), str(status_path), "build status file does not exist")
+        build_status = validate_build_status(read_json(status_path), str(status_path))
     if not static_dir.is_dir():
         raise ContractError(f"{static_dir}: static site directory does not exist")
     ensure_safe_output(output_dir, records_dir, static_dir)
@@ -506,6 +565,26 @@ def build_site(
     for record in records:
         write_json(release_output / f"{record['id']}.json", record)
 
+    if build_status is not None:
+        matching_release = next(
+            (record for record in records if record["id"] == build_status["releaseId"]),
+            None,
+        )
+        if build_status["state"] == "accepted":
+            require(
+                matching_release is not None,
+                str(status_path),
+                "accepted status requires an immutable release record",
+            )
+        elif build_status["state"] == "running" and matching_release is not None:
+            build_status = dict(build_status)
+            build_status["state"] = "accepted"
+            build_status["updatedAt"] = matching_release["publishedAt"]
+            build_status["message"] = (
+                "Accepted and published after dual-architecture validation."
+            )
+        write_json(output_dir / "status" / "v1" / "nightly.json", build_status)
+
     index_path = output_dir / "index.html"
     try:
         template = index_path.read_text(encoding="utf-8")
@@ -513,13 +592,24 @@ def build_site(
         raise ContractError(f"{index_path}: cannot read site template: {error}") from error
     require(template.count("{{LATEST_STATUS}}") == 1, str(index_path), "must contain one {{LATEST_STATUS}} marker")
     require(template.count("{{RELEASE_ROWS}}") == 1, str(index_path), "must contain one {{RELEASE_ROWS}} marker")
+    status_line = None
+    if build_status is not None and build_status["state"] != "accepted":
+        state = html.escape(build_status["state"])
+        status_line = (
+            f'<span class="status-state status-{state}">{state}</span> '
+            f"<strong>{html.escape(build_status['releaseId'])}</strong> — "
+            f"{html.escape(build_status['message'])} "
+            '<a href="status/v1/nightly.json">Machine-readable status</a>'
+        )
     if records:
         newest = records[0]
-        latest_status = (
+        accepted_line = (
+            '<span class="status-state status-accepted">accepted</span> '
             f"<strong>{html.escape(newest['id'])}</strong> — "
             f"{html.escape(newest['version'])}. "
             f"<a href=\"releases/v1/{html.escape(newest['id'])}.json\">Immutable metadata</a>"
         )
+        latest_status = f"{status_line}<br>{accepted_line}" if status_line else accepted_line
         rows = []
         for record in records:
             rows.append(
@@ -533,7 +623,9 @@ def build_site(
             )
         release_rows = "\n".join(rows)
     else:
-        latest_status = "<strong>No public nightly yet.</strong> The channel contract and publishing path are ready."
+        latest_status = status_line or (
+            "<strong>No public nightly yet.</strong> The channel contract and publishing path are ready."
+        )
         release_rows = '<article class="release-row"><p>No release records have been published.</p></article>'
     rendered = template.replace("{{LATEST_STATUS}}", latest_status).replace("{{RELEASE_ROWS}}", release_rows)
     index_path.write_text(rendered, encoding="utf-8")
@@ -736,6 +828,7 @@ def command_build_site(arguments: argparse.Namespace) -> int:
         arguments.static_dir,
         arguments.output_dir,
         arguments.schema_dir,
+        arguments.status,
     )
     print(f"built {arguments.output_dir} from {count} release record(s)")
     return 0
@@ -803,6 +896,7 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     site_parser.add_argument("--records-dir", type=Path, required=True)
     site_parser.add_argument("--static-dir", type=Path, required=True)
     site_parser.add_argument("--schema-dir", type=Path)
+    site_parser.add_argument("--status", type=Path)
     site_parser.add_argument("--output-dir", type=Path, required=True)
     site_parser.set_defaults(handler=command_build_site)
 

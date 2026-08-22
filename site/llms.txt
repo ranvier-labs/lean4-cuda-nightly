@@ -19,6 +19,8 @@ human skin of the same pages.
 
 ## Nightly automation (JSON)
 
+- Build status: `status/v1/nightly.json` (informational; never an install source)
+- Build-status schema: `schema/build-status-v1.schema.json`
 - Latest pointer: `releases/v1/latest.json` (`release` is null until a nightly exists)
 - Index: `releases/v1/index.json`
 - Immutable record: `releases/v1/<release-id>.json`
@@ -27,7 +29,8 @@ human skin of the same pages.
 
 ## Rules
 
-1. If `latest.json` has a null `release`, say no public nightly exists and stop.
+1. A `running` or `failed` build status is informational. If `latest.json` has a null `release`,
+   say no public nightly exists and stop; never install the candidate.
 2. After resolving `latest`, pin the immutable release `id`. Never keep `latest` as the version.
 3. Map `uname -m` only: `x86_64` → x86_64, `aarch64`/`arm64` → aarch64. Linux only.
 4. Checksum-verified install: download the immutable archive URL, compare SHA-256, extract.
