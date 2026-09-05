@@ -1,9 +1,9 @@
 {
   "channel": "nightly",
-  "message": "Full dual-architecture validation is running. Downloads will appear after both architecture gates pass.",
+  "message": "Accepted and published after dual-architecture validation.",
   "releaseId": "nightly-2026-09-05",
   "schema": "lean.cuda.build-status/v1",
   "startedAt": "2026-09-05T11:03:43Z",
-  "state": "running",
-  "updatedAt": "2026-09-05T11:03:43Z"
+  "state": "accepted",
+  "updatedAt": "2026-09-05T15:12:02Z"
 }
