@@ -1,0 +1,86 @@
+{
+  "artifacts": [
+    {
+      "architecture": "x86_64",
+      "checksumUrl": "https://github.com/ranvier-labs/lean4-cuda-nightly/releases/download/nightly-2026-10-01/lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux.tar.zst.sha256",
+      "hostSystem": "Linux",
+      "manifest": {
+        "fileCount": 15728,
+        "name": "lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux.manifest.json",
+        "schema": "lean.cuda.release-manifest/v1",
+        "sha256": "1652561a19a0639f9527e8e3a96a65ac907351d8f8bb3c380457c4be21740e83",
+        "size": 3154644,
+        "url": "https://github.com/ranvier-labs/lean4-cuda-nightly/releases/download/nightly-2026-10-01/lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux.manifest.json"
+      },
+      "name": "lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux.tar.zst",
+      "sassArchitectures": [
+        "sm_90a",
+        "sm_100a",
+        "sm_120a"
+      ],
+      "sha256": "6d499af0ace448784f9aec2a8f17a9429920faf097b33a109cc5f5a8b09359e7",
+      "size": 581695913,
+      "url": "https://github.com/ranvier-labs/lean4-cuda-nightly/releases/download/nightly-2026-10-01/lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux.tar.zst"
+    },
+    {
+      "architecture": "aarch64",
+      "checksumUrl": "https://github.com/ranvier-labs/lean4-cuda-nightly/releases/download/nightly-2026-10-01/lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux_aarch64.tar.zst.sha256",
+      "hostSystem": "Linux",
+      "manifest": {
+        "fileCount": 15728,
+        "name": "lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux_aarch64.manifest.json",
+        "schema": "lean.cuda.release-manifest/v1",
+        "sha256": "723b49a7e3d9844d9e8ddfdef8fdc74cea909450c47c64f92e5a55f453644952",
+        "size": 3154640,
+        "url": "https://github.com/ranvier-labs/lean4-cuda-nightly/releases/download/nightly-2026-10-01/lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux_aarch64.manifest.json"
+      },
+      "name": "lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux_aarch64.tar.zst",
+      "sassArchitectures": [
+        "sm_90a",
+        "sm_100a",
+        "sm_121a"
+      ],
+      "sha256": "b6b134b861d7bb0f371963d43afbfebecbf39d1e918162e1d8fe5732222478e4",
+      "size": 581318390,
+      "url": "https://github.com/ranvier-labs/lean4-cuda-nightly/releases/download/nightly-2026-10-01/lean-4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe-linux_aarch64.tar.zst"
+    }
+  ],
+  "build": {
+    "cudaToolkitVersion": "13.0.88",
+    "ptxArchitecture": "compute_90",
+    "validation": {
+      "extractedSmoke": true,
+      "failures": 0,
+      "registered": 4080,
+      "skipped": 12,
+      "umbrellaModules": 124
+    },
+    "workflowUrl": "https://github.com/ranvier-labs/lean4-cuda-backend/actions/runs/36873058628"
+  },
+  "channel": "nightly",
+  "contentPolicy": {
+    "privateLeanSources": "excluded",
+    "sdkHeaders": "included"
+  },
+  "gates": {
+    "dualArchitectureCI": "passed",
+    "h100": "not-run",
+    "performanceClaims": false
+  },
+  "id": "nightly-2026-10-01",
+  "installation": {
+    "elanToolchain": "ranvier-labs/lean4-cuda-nightly:nightly-2026-10-01",
+    "repository": "ranvier-labs/lean4-cuda-nightly"
+  },
+  "limitations": [
+    "Experimental nightly APIs may change incompatibly.",
+    "This release carries no H100 performance claim."
+  ],
+  "publishedAt": "2026-10-01T18:34:14Z",
+  "schema": "lean.cuda.release/v1",
+  "source": {
+    "commit": "e8f10c9ff5fe80018c692a47f2e0f287a74d33bf",
+    "visibility": "private"
+  },
+  "version": "4.33.0-cuda-nightly.20261001.ge8f10c9ff5fe"
+}
